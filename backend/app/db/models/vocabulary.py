@@ -13,18 +13,22 @@ from app.db.models.enums import (
     SuggestionStatus,
 )
 
-# Robust fallback for Vector if pgvector library is not present
-try:
-    from pgvector.sqlalchemy import Vector  # type: ignore
-except ImportError:
-    from sqlalchemy.types import UserDefinedType
-    class Vector(UserDefinedType):
-        def __init__(self, dim=None):
-            self.dim = dim
-        def get_col_spec(self, **kw):
-            if self.dim:
-                return f"vector({self.dim})"
-            return "vector"
+import os
+from sqlalchemy.dialects.postgresql import JSONB
+
+USE_PGVECTOR = os.getenv("USE_PGVECTOR", "false").lower() == "true"
+
+Vector = None
+if USE_PGVECTOR:
+    try:
+        from pgvector.sqlalchemy import Vector  # type: ignore
+    except ImportError:
+        pass
+
+if Vector is None:
+    class Vector(JSONB):
+        def __init__(self, dim=None, *args, **kwargs):
+            super().__init__(*args, **kwargs)
 
 
 class VocabularyWord(Base):

@@ -1,7 +1,7 @@
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, AnyHttpUrl
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "TalkFiesta Backend"
@@ -20,8 +20,6 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v:
             return v
         
-        # Extract from info.data (Pydantic v2 behavior)
-        # Fall back to using default environment variables if values are missing
         data = info.data if hasattr(info, "data") else {}
         server = data.get("POSTGRES_SERVER") or os.getenv("POSTGRES_SERVER", "localhost")
         user = data.get("POSTGRES_USER") or os.getenv("POSTGRES_USER", "postgres")
@@ -30,8 +28,26 @@ class Settings(BaseSettings):
         
         return f"postgresql://{user}:{password}@{server}/{db}"
 
+    # JWT & Cryptography Settings
+    SECRET_KEY: str = "super-secret-key-for-development-purposes-only-please-change-in-env"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 1 week for easy dev testing, default is 30 mins
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # Google OAuth Settings
+    GOOGLE_CLIENT_ID: str | None = None
+    GOOGLE_CLIENT_SECRET: str | None = None
+
+    # Gemini API Settings
+    GEMINI_API_KEY: str | None = None
+
+    # CORS Settings
+    FRONTEND_URL: str = "http://localhost:3000"
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
+
     class Config:
         case_sensitive = True
         env_file = ".env"
 
 settings = Settings()
+
