@@ -8,7 +8,9 @@ from app.crud import vocabulary as crud_vocab
 from app.crud import user as crud_user
 from app.db.models.user import User
 from app.db.models.enums import VocabWordStatus, SuggestionStatus
-from app.services import gemini_client
+from app.services import gemini_client, deepgram_client
+import difflib
+import string
 from app.middleware.rate_limit import check_ai_rate_limit
 from app.schemas.vocabulary import (
     DayWordsResponse,
@@ -206,7 +208,7 @@ def submit_pronunciation(
     _rate_limit: None = Depends(check_ai_rate_limit),
 ) -> Any:
     """
-    Grade user pronunciation (STT simulation for MVP, returns success score).
+    Grade user pronunciation using Deepgram STT and string matching.
     """
     word = crud_vocab.get_word_by_id(db, word_id=submission.word_id)
     if not word:
@@ -215,11 +217,37 @@ def submit_pronunciation(
             detail="Word not found",
         )
         
-    # Return simulated success parameters
+    # Transcribe the audio
+    transcript = deepgram_client.transcribe_audio(
+        submission.audio_url, target_word=word.word
+    )
+    
+    # Normalize strings for comparison
+    normalized_target = word.word.lower().strip().translate(str.maketrans("", "", string.punctuation))
+    normalized_transcript = transcript.lower().strip().translate(str.maketrans("", "", string.punctuation))
+    
+    # Calculate similarity ratio
+    if not normalized_transcript:
+        score = 0
+    elif normalized_target in normalized_transcript:
+        # If the target word is explicitly heard in the transcript, give full credit
+        score = 100
+    else:
+        matcher = difflib.SequenceMatcher(None, normalized_target, normalized_transcript)
+        score = int(matcher.ratio() * 100)
+        
+    # Generate helpful tips
+    if score >= 90:
+        tip = "Great pronunciation! Intonation matches correctly."
+    elif score >= 70:
+        tip = f"Pronunciation is close, but we transcribed '{transcript}'. Try to emphasize each syllable clearly."
+    else:
+        tip = f"Hmm, that sounded like '{transcript}'. Try breaking the word down phonetically and repeating it slowly."
+        
     return PronunciationResult(
         word_id=submission.word_id,
-        score=95,
-        tip="Great pronunciation! Intonation matches correctly.",
+        score=score,
+        tip=tip,
     )
 
 

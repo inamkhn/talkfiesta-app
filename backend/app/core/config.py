@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # Gemini API Settings
     GEMINI_API_KEY: str | None = None
 
+    # Redis Settings
+    REDIS_URL: str = "redis://localhost:6379/0"
+
+    # Deepgram API Settings
+    DEEPGRAM_API_KEY: str | None = None
+
     # CORS Settings
     FRONTEND_URL: str = "http://localhost:3000"
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000"]
