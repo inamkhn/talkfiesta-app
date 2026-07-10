@@ -15,14 +15,18 @@ from app.db.models.enums import VocabWordStatus, SuggestionStatus
 from app.schemas.vocabulary import SessionCompleteRequest
 
 
-def get_day_words(db: Session, cycle: int, day: int) -> List[VocabularyWord]:
+def get_day_words(db: Session, cycle: int, day: int, target_cefr_level: str) -> List[VocabularyWord]:
     """
-    Retrieve all VocabularyWord entries configured for a specific cycle and day,
-    along with their deterministic pre-generated exercises.
+    Retrieve all VocabularyWord entries configured for a specific cycle, day,
+    and CEFR level along with their deterministic pre-generated exercises.
     """
     return (
         db.query(VocabularyWord)
-        .filter(VocabularyWord.cycle == cycle, VocabularyWord.day == day)
+        .filter(
+            VocabularyWord.cycle == cycle, 
+            VocabularyWord.day == day,
+            VocabularyWord.target_cefr_level == target_cefr_level
+        )
         .options(joinedload(VocabularyWord.exercises))
         .all()
     )

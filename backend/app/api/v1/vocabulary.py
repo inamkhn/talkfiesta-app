@@ -54,12 +54,13 @@ def get_daily_vocabulary(
     """
     profile = crud_user.get_learning_profile(db, user_id=current_user.id)
     cycle = profile.current_cycle if profile else 1
+    cefr_level = profile.target_cefr_level if profile else "A1"
     
-    words = crud_vocab.get_day_words(db, cycle=cycle, day=day)
+    words = crud_vocab.get_day_words(db, cycle=cycle, day=day, target_cefr_level=cefr_level)
     if not words:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No vocabulary words configured for cycle {cycle}, day {day}",
+            detail=f"No vocabulary words configured for cycle {cycle}, day {day}, level {cefr_level}",
         )
         
     response_words = []

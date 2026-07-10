@@ -1,7 +1,8 @@
 import json
 import logging
-import httpx
 from typing import Any, Dict
+from google import genai
+from google.genai.errors import APIError
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from app.core.config import settings
@@ -17,7 +18,7 @@ class GeminiAPIError(Exception):
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((httpx.RequestError, GeminiAPIError)),
+    retry=retry_if_exception_type((APIError, GeminiAPIError)),
     reraise=True,
 )
 def generate_structured_response(
@@ -28,61 +29,34 @@ def generate_structured_response(
 ) -> Dict[str, Any]:
     """
     Call Gemini API with a prompt and retrieve a validated structured JSON response.
-    Uses Direct REST API call via httpx to avoid dependency resolution issues.
+    Uses the official google-genai SDK.
     """
     api_key = settings.GEMINI_API_KEY
     if not api_key:
         logger.error("GEMINI_API_KEY is not set in environment or configuration.")
         raise ValueError("GEMINI_API_KEY is not configured")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    client = genai.Client(api_key=api_key)
     
-    headers = {"Content-Type": "application/json"}
-    
-    payload = {
-        "contents": [
-            {
-                "parts": [
-                    {"text": prompt}
-                ]
-            }
-        ],
-        "generationConfig": {
-            "responseMimeType": "application/json",
-            "responseSchema": response_schema,
-            "temperature": temperature,
-        },
-    }
-
     try:
-        with httpx.Client(timeout=30.0) as client:
-            response = client.post(url, json=payload, headers=headers)
+        response = client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=response_schema,
+                temperature=temperature,
+            ),
+        )
+        
+        text_response = response.text
+        if not text_response:
+            raise GeminiAPIError("Empty text block returned from Gemini")
             
-            if response.status_code != 200:
-                logger.error(
-                    f"Gemini API returned status code {response.status_code}: {response.text}"
-                )
-                raise GeminiAPIError(
-                    f"Gemini API error ({response.status_code}): {response.text}"
-                )
-                
-            result_json = response.json()
-            
-            # Extract content text from Gemini response structure
-            candidates = result_json.get("candidates", [])
-            if not candidates:
-                raise GeminiAPIError("No response candidates returned from Gemini API")
-                
-            part = candidates[0].get("content", {}).get("parts", [])[0]
-            text_response = part.get("text", "").strip()
-            
-            if not text_response:
-                raise GeminiAPIError("Empty text block returned from Gemini candidate")
-                
-            return json.loads(text_response)
-            
-    except httpx.RequestError as exc:
-        logger.error(f"HTTP request to Gemini API failed: {exc}")
+        return json.loads(text_response)
+        
+    except APIError as exc:
+        logger.error(f"Google GenAI SDK API error: {exc}")
         raise exc
     except json.JSONDecodeError as exc:
         logger.error(f"Failed to parse Gemini API response as JSON: {exc}")

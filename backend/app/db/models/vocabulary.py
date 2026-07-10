@@ -13,22 +13,7 @@ from app.db.models.enums import (
     SuggestionStatus,
 )
 
-import os
-from sqlalchemy.dialects.postgresql import JSONB
 
-USE_PGVECTOR = os.getenv("USE_PGVECTOR", "false").lower() == "true"
-
-Vector = None
-if USE_PGVECTOR:
-    try:
-        from pgvector.sqlalchemy import Vector  # type: ignore
-    except ImportError:
-        pass
-
-if Vector is None:
-    class Vector(JSONB):
-        def __init__(self, dim=None, *args, **kwargs):
-            super().__init__(*args, **kwargs)
 
 
 class VocabularyWord(Base):
@@ -53,7 +38,7 @@ class VocabularyWord(Base):
     target_cefr_level: Mapped[str] = mapped_column(String, nullable=False)
     cycle: Mapped[int] = mapped_column(Integer, nullable=False)
     day: Mapped[int] = mapped_column(Integer, nullable=False)
-    word_embedding: Mapped[list | None] = mapped_column(Vector(768), nullable=True)
+
     generated_by: Mapped[ContentSource] = mapped_column(
         SQLEnum(ContentSource), nullable=False
     )
