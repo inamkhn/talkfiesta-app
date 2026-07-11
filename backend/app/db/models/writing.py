@@ -12,23 +12,6 @@ from app.db.models.enums import (
     SubmissionStatus,
 )
 
-import os
-from sqlalchemy.dialects.postgresql import JSONB
-
-USE_PGVECTOR = os.getenv("USE_PGVECTOR", "false").lower() == "true"
-
-Vector = None
-if USE_PGVECTOR:
-    try:
-        from pgvector.sqlalchemy import Vector  # type: ignore
-    except ImportError:
-        pass
-
-if Vector is None:
-    class Vector(JSONB):
-        def __init__(self, dim=None, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
 
 class WritingPrompt(Base):
     __tablename__ = "writing_prompts"
@@ -52,7 +35,7 @@ class WritingPrompt(Base):
     sensitivity_flagged: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False
     )
-    prompt_embedding: Mapped[list | None] = mapped_column(Vector(768), nullable=True)
+
     generated_by: Mapped[ContentSource] = mapped_column(
         SQLEnum(ContentSource), nullable=False
     )

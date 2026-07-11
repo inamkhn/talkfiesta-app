@@ -7,13 +7,17 @@ from app.db.models.writing import WritingPrompt, WritingSubmission, WritingSubmi
 from app.db.models.enums import SubmissionStatus
 
 
-def get_prompt_by_cycle_and_day(db: Session, cycle: int, day: int) -> Optional[WritingPrompt]:
+def get_prompt_by_cycle_and_day(db: Session, cycle: int, day: int, target_cefr_level: str) -> Optional[WritingPrompt]:
     """
-    Retrieve a writing prompt for a specific cycle and day.
+    Retrieve a writing prompt for a specific cycle, day, and CEFR level.
     """
     return (
         db.query(WritingPrompt)
-        .filter(WritingPrompt.cycle == cycle, WritingPrompt.day == day)
+        .filter(
+            WritingPrompt.cycle == cycle,
+            WritingPrompt.day == day,
+            WritingPrompt.difficulty_level == target_cefr_level,
+        )
         .first()
     )
 

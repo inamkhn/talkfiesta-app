@@ -20,6 +20,7 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
     """
     logger.info(f"Processing writing submission {submission_id}, version {version_id}")
     db = SessionLocal()
+    sub_uuid = None
     try:
         sub_uuid = uuid.UUID(submission_id)
         ver_uuid = uuid.UUID(version_id)
@@ -118,14 +119,14 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
     except Exception as exc:
         logger.error(f"Error processing writing submission {submission_id}: {exc}", exc_info=True)
         # Attempt to set submission status to FAILED in case of crash
-        try:
-            sub_uuid = uuid.UUID(submission_id)
-            submission = db.query(WritingSubmission).filter(WritingSubmission.id == sub_uuid).first()
-            if submission:
-                submission.status = SubmissionStatus.FAILED
-                db.commit()
-        except Exception as db_exc:
-            logger.error(f"Failed to fallback update submission to FAILED: {db_exc}")
+        if sub_uuid:
+            try:
+                submission = db.query(WritingSubmission).filter(WritingSubmission.id == sub_uuid).first()
+                if submission:
+                    submission.status = SubmissionStatus.FAILED
+                    db.commit()
+            except Exception as db_exc:
+                logger.error(f"Failed to fallback update submission to FAILED: {db_exc}")
 
     finally:
         db.close()

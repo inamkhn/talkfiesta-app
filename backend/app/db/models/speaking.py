@@ -84,8 +84,8 @@ class SpeakingSubmission(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
-    exercise_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("speaking_exercises.id"), nullable=False
+    exercise_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("speaking_exercises.id"), nullable=True
     )
     daily_activity_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("daily_progress.id"), nullable=True
