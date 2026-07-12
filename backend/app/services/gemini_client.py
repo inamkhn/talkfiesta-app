@@ -15,6 +15,19 @@ class GeminiAPIError(Exception):
     pass
 
 
+# Module-level singleton to reuse HTTP connections
+_client = None
+
+def _get_client() -> genai.Client:
+    global _client
+    if _client is None:
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not configured")
+        _client = genai.Client(api_key=api_key)
+    return _client
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -29,14 +42,9 @@ def generate_structured_response(
 ) -> Dict[str, Any]:
     """
     Call Gemini API with a prompt and retrieve a validated structured JSON response.
-    Uses the official google-genai SDK.
+    Uses the official google-genai SDK with a reusable singleton client.
     """
-    api_key = settings.GEMINI_API_KEY
-    if not api_key:
-        logger.error("GEMINI_API_KEY is not set in environment or configuration.")
-        raise ValueError("GEMINI_API_KEY is not configured")
-
-    client = genai.Client(api_key=api_key)
+    client = _get_client()
     
     try:
         response = client.models.generate_content(

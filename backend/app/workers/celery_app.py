@@ -5,7 +5,11 @@ celery_app = Celery(
     "talkfiesta",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
-    include=["app.workers.writing_tasks"],
+    include=[
+        "app.workers.writing_tasks",
+        "app.workers.speaking_tasks",
+        "app.workers.interview_tasks",
+    ],
 )
 
 celery_app.conf.update(

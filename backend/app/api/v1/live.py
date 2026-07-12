@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 from typing import Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 
 from app.core.config import settings
@@ -29,7 +29,7 @@ def create_ephemeral_token(user_id: UUID, session_id: UUID) -> str:
     """
     Generates a short-lived JWT token specifically for this live session.
     """
-    expire = datetime.utcnow() + timedelta(minutes=60)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=60)
     to_encode = {
         "sub": str(user_id),
         "session_id": str(session_id),
@@ -55,7 +55,7 @@ def start_live_session(
     token = create_ephemeral_token(user_id=current_user.id, session_id=live_session.id)
     
     # Optional: store token issued time in DB
-    update_live_session(db, live_session, {"ephemeral_token_issued_at": datetime.utcnow()})
+    update_live_session(db, live_session, {"ephemeral_token_issued_at": datetime.now(timezone.utc)})
     
     return {
         "session_id": live_session.id,
@@ -92,7 +92,7 @@ def end_live_session(
             "actual_duration_seconds": end_data.actual_duration_seconds,
             "transcript_json": transcript_dicts,
             "turn_count": len(transcript_dicts),
-            "ended_at": datetime.utcnow()
+            "ended_at": datetime.now(timezone.utc)
         }
     )
     

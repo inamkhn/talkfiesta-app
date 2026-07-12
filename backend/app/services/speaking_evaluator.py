@@ -182,18 +182,22 @@ def process_transcript_evaluation(
 ) -> Dict[str, Any]:
     """
     Orchestrates the Multi-Agent evaluation pipeline.
-    Runs Grammar, Vocabulary, and Fluency evaluations sequentially, then aggregates.
+    Runs Grammar, Vocabulary, and Fluency evaluations in parallel, then aggregates.
     """
-    # 1. Grammar Agent
-    grammar_res = evaluate_grammar(transcript)
+    from concurrent.futures import ThreadPoolExecutor
     
-    # 2. Vocabulary Agent
-    vocab_res = evaluate_vocabulary(transcript)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        grammar_future = executor.submit(evaluate_grammar, transcript)
+        vocab_future = executor.submit(evaluate_vocabulary, transcript)
+        fluency_future = executor.submit(
+            evaluate_fluency, transcript, duration_sec, word_count, pause_count, filler_words_count
+        )
+        
+        grammar_res = grammar_future.result()
+        vocab_res = vocab_future.result()
+        fluency_res = fluency_future.result()
     
-    # 3. Fluency Agent
-    fluency_res = evaluate_fluency(transcript, duration_sec, word_count, pause_count, filler_words_count)
-    
-    # 4. Aggregator
+    # Aggregator
     final_results = aggregate_speaking_feedback(grammar_res, vocab_res, fluency_res, transcript)
     
     return final_results

@@ -1,6 +1,6 @@
 import uuid
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.workers.celery_app import celery_app
 from app.db.session import SessionLocal
@@ -64,7 +64,7 @@ def process_speaking_submission(submission_id: str) -> None:
         submission.vocabulary_suggestions = feedback["vocabulary_suggestions"]
         submission.ai_feedback = feedback["ai_feedback"]
         submission.status = SubmissionStatus.COMPLETED
-        submission.completed_at = datetime.utcnow()
+        submission.completed_at = datetime.now(timezone.utc)
         
         db.commit()
         logger.info(f"Successfully processed speaking submission {submission_id}")
@@ -142,7 +142,7 @@ def process_live_session_analysis(session_id: str) -> None:
             vocabulary_suggestions=feedback.get("vocabulary_suggestions"),
             ai_feedback=feedback.get("ai_feedback"),
             status=SubmissionStatus.COMPLETED,
-            completed_at=datetime.utcnow()
+            completed_at=datetime.now(timezone.utc)
         )
         db.add(submission)
         db.flush()
