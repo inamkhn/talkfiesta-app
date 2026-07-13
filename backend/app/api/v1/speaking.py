@@ -21,6 +21,7 @@ from app.db.models.enums import SpeakingExerciseType
 from app.workers.speaking_tasks import process_speaking_submission
 from app.api.deps import get_current_user
 from app.db.models.user import User
+from app.middleware.rate_limit import check_ai_rate_limit
 
 router = APIRouter()
 
@@ -45,7 +46,8 @@ def fetch_exercise(
 def submit_audio(
     submission_in: SpeakingSubmissionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    _rate_limit: None = Depends(check_ai_rate_limit)
 ) -> Any:
     """
     Upload recorded audio reference and trigger async evaluation (Flow A).
