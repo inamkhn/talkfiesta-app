@@ -1,5 +1,6 @@
 import uuid
 from typing import Any, List, Optional
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -55,16 +56,36 @@ def save_writing_draft(
     Lightweight, frequent auto-save endpoint to persist the user's text.
     Does not trigger AI grading.
     """
-    submission, version = crud_writing.save_draft(
-        db=db,
-        user_id=current_user.id,
-        prompt_id=draft_data.prompt_id,
-        content=draft_data.content,
-    )
+    from app.middleware.rate_limit import redis_client
+    
+    submission = crud_writing.get_pending_submission_by_prompt(db, current_user.id, draft_data.prompt_id)
+    
+    if not submission:
+        submission, version = crud_writing.save_draft(
+            db=db,
+            user_id=current_user.id,
+            prompt_id=draft_data.prompt_id,
+            content="",
+        )
+        last_edited = version.created_at
+    else:
+        last_edited = datetime.now(timezone.utc)
+        
+    if redis_client:
+        redis_client.setex(f"draft:{submission.id}", 86400 * 7, draft_data.content)
+    else:
+        submission, version = crud_writing.save_draft(
+            db=db,
+            user_id=current_user.id,
+            prompt_id=draft_data.prompt_id,
+            content=draft_data.content,
+        )
+        last_edited = version.created_at
+
     return DraftSaveResponse(
         submission_id=submission.id,
         status=submission.status,
-        last_edited_at=version.created_at,
+        last_edited_at=last_edited,
     )
 
 
@@ -85,7 +106,12 @@ def submit_writing(
     if len(submission_data.content.strip()) < 10:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Essay content is too short. Minimum 10 characters required.",
+            detail="Content must be at least 10 characters long.",
+        )
+    if len(submission_data.content) > 10000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Content is too long. Maximum allowed length is 10,000 characters.",
         )
 
     # Verify prompt exists
@@ -126,6 +152,11 @@ def submit_writing(
     task = process_writing_submission.delay(str(submission.id), str(version.id))
     submission.processing_job_id = task.id
     db.commit()
+
+    from app.middleware.rate_limit import redis_client
+    if redis_client:
+        redis_client.delete(f"draft:{submission.id}")
+
     db.refresh(submission)
 
     return submission
@@ -153,6 +184,12 @@ def get_submission(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to view this submission.",
         )
+
+    from app.middleware.rate_limit import redis_client
+    if submission.status == SubmissionStatus.PENDING and redis_client:
+        cached_draft = redis_client.get(f"draft:{submission.id}")
+        if cached_draft is not None and len(submission.versions) > 0:
+            submission.versions[0].text_content = cached_draft
 
     return submission
 
@@ -195,6 +232,11 @@ def revise_submission(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Revised content is too short. Minimum 10 characters required.",
+        )
+    if len(revision_data.content) > 10000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Revised content is too long. Maximum allowed length is 10,000 characters.",
         )
 
     # Calculate actual word count server-side

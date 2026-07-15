@@ -7,11 +7,16 @@ from app.db.models.enums import SubmissionStatus
 from app.agents.writing.feedback_graph import feedback_graph
 from app.agents.writing.revision_comparison_graph import revision_comparison_graph
 from app.crud import writing as crud_writing
+from app.middleware.rate_limit import refund_ai_rate_limit
 
 logger = logging.getLogger("app.workers.writing_tasks")
 
 
-@celery_app.task(name="app.workers.writing_tasks.process_writing_submission")
+@celery_app.task(
+    name="app.workers.writing_tasks.process_writing_submission",
+    acks_late=True,
+    max_retries=3
+)
 def process_writing_submission(submission_id: str, version_id: str) -> None:
     """
     Task to evaluate a writing submission or revision.
@@ -121,10 +126,13 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
         # Attempt to set submission status to FAILED in case of crash
         if sub_uuid:
             try:
+                db.rollback()
                 submission = db.query(WritingSubmission).filter(WritingSubmission.id == sub_uuid).first()
                 if submission:
                     submission.status = SubmissionStatus.FAILED
                     db.commit()
+                    # Refund the quota on failure
+                    refund_ai_rate_limit(str(submission.user_id))
             except Exception as db_exc:
                 logger.error(f"Failed to fallback update submission to FAILED: {db_exc}")
 

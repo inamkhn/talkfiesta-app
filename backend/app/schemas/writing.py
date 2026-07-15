@@ -6,6 +6,66 @@ from pydantic import BaseModel, Field
 from app.db.models.enums import WritingPromptType, SubmissionStatus
 
 
+class GrammarIssue(BaseModel):
+    type: Optional[str] = None
+    original_text: str
+    replacement_text: str
+    explanation: str
+
+class GrammarReport(BaseModel):
+    score: int
+    issues: List[GrammarIssue]
+
+class StructureReport(BaseModel):
+    score: int
+    notes: List[str]
+    suggestions: List[str]
+
+class VocabularySuggestion(BaseModel):
+    original_word: str
+    suggested_word: str
+    context: str
+    explanation: str
+
+class VocabularyReport(BaseModel):
+    score: int
+    suggestions: List[VocabularySuggestion]
+
+class CoherenceReport(BaseModel):
+    score: int
+    notes: List[str]
+    topic_relevance: str
+
+class SupervisorReport(BaseModel):
+    overall_score: int
+    grammar_score: int
+    structure_score: int
+    vocabulary_score: int
+    coherence_score: int
+    strengths: List[str]
+    improvements: List[str]
+    actionable_tips: List[str]
+    narrative_summary: str
+
+class AIFeedbackSchema(BaseModel):
+    grammar: Optional[GrammarReport] = None
+    structure: Optional[StructureReport] = None
+    vocabulary: Optional[VocabularyReport] = None
+    coherence: Optional[CoherenceReport] = None
+    supervisor: Optional[SupervisorReport] = None
+
+class FixedIssue(BaseModel):
+    description: str
+    original_text: str
+
+class FixedIssuesSchema(BaseModel):
+    fixed_issues: List[FixedIssue] = []
+    still_present_issues: List[FixedIssue] = []
+    new_issues_introduced: List[FixedIssue] = []
+    error: Optional[str] = None
+
+
+
 class WritingPromptResponse(BaseModel):
     id: uuid.UUID
     cycle: int
@@ -61,8 +121,8 @@ class WritingSubmissionVersionResponse(BaseModel):
     vocabulary_score: Optional[int] = None
     coherence_score: Optional[int] = None
     overall_score: Optional[int] = None
-    ai_feedback: Optional[Any] = None
-    fixed_issues: Optional[Any] = None
+    ai_feedback: Optional[AIFeedbackSchema] = None
+    fixed_issues: Optional[FixedIssuesSchema] = None
     created_at: datetime
 
     class Config:

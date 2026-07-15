@@ -42,20 +42,19 @@ def get_submission_by_id(db: Session, submission_id: uuid.UUID) -> Optional[Writ
 
 
 def get_pending_submission_by_prompt(
-    db: Session, user_id: uuid.UUID, prompt_id: uuid.UUID
+    db: Session, user_id: uuid.UUID, prompt_id: uuid.UUID, for_update: bool = False
 ) -> Optional[WritingSubmission]:
     """
     Find if a user has a pending draft submission for a prompt.
     """
-    return (
-        db.query(WritingSubmission)
-        .filter(
-            WritingSubmission.user_id == user_id,
-            WritingSubmission.prompt_id == prompt_id,
-            WritingSubmission.status == SubmissionStatus.PENDING,
-        )
-        .first()
+    query = db.query(WritingSubmission).filter(
+        WritingSubmission.user_id == user_id,
+        WritingSubmission.prompt_id == prompt_id,
+        WritingSubmission.status == SubmissionStatus.PENDING,
     )
+    if for_update:
+        query = query.with_for_update()
+    return query.first()
 
 
 def save_draft(
@@ -124,7 +123,7 @@ def submit_writing_essay(
     """
     Promote a draft to a processing submission, or create one directly in processing state.
     """
-    submission = get_pending_submission_by_prompt(db, user_id, prompt_id)
+    submission = get_pending_submission_by_prompt(db, user_id, prompt_id, for_update=True)
 
     if submission:
         submission.status = SubmissionStatus.PROCESSING
@@ -191,7 +190,7 @@ def create_revision(
     Create a new revision version on an existing submission, incrementing revision count.
     Max 3 revisions allowed (meaning version_number can go up to 4).
     """
-    submission = db.query(WritingSubmission).filter(WritingSubmission.id == submission_id).first()
+    submission = db.query(WritingSubmission).with_for_update().filter(WritingSubmission.id == submission_id).first()
     if not submission:
         raise ValueError("Submission not found")
 

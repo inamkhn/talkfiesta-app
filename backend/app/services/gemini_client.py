@@ -36,10 +36,10 @@ def _get_client() -> genai.Client:
 )
 def generate_structured_response(
     prompt: str,
-    response_schema: Dict[str, Any],
+    response_schema: Any,
     temperature: float = 0.2,
     model: str = "gemini-1.5-flash",
-) -> Dict[str, Any]:
+) -> Any:
     """
     Call Gemini API with a prompt and retrieve a validated structured JSON response.
     Uses the official google-genai SDK with a reusable singleton client.

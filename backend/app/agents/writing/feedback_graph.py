@@ -236,26 +236,20 @@ Provide a warm, encouraging, yet professional narrative summary. List 2-3 streng
     try:
         report = generate_structured_response(prompt, schema, temperature=0.2)
     except Exception as e:
-        g_score = (
-            state.get("grammar_report", {}).get("score", 70)
-            if state.get("grammar_report")
-            else 70
-        )
-        s_score = (
-            state.get("structure_report", {}).get("score", 70)
-            if state.get("structure_report")
-            else 70
-        )
-        v_score = (
-            state.get("vocabulary_report", {}).get("score", 70)
-            if state.get("vocabulary_report")
-            else 70
-        )
-        c_score = (
-            state.get("coherence_report", {}).get("score", 70)
-            if state.get("coherence_report")
-            else 70
-        )
+        def _safe_score(report_key: str) -> int:
+            try:
+                report = state.get(report_key)
+                if isinstance(report, dict):
+                    return int(report.get("score", 70))
+            except (ValueError, TypeError, AttributeError):
+                pass
+            return 70
+
+        g_score = _safe_score("grammar_report")
+        s_score = _safe_score("structure_report")
+        v_score = _safe_score("vocabulary_report")
+        c_score = _safe_score("coherence_report")
+        
         overall = int(g_score * 0.3 + s_score * 0.3 + v_score * 0.2 + c_score * 0.2)
 
         report = {

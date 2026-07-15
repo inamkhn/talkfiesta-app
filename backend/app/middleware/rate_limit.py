@@ -75,3 +75,21 @@ def check_ai_rate_limit(
             )
             
         record["count"] += 1
+
+def refund_ai_rate_limit(user_id: str) -> None:
+    """
+    Safely decrements the user's AI call count if a background evaluation fails.
+    """
+    if redis_client is not None:
+        try:
+            key = f"rate_limit:ai:{user_id}"
+            count = redis_client.decr(key)
+            if count < 0:
+                redis_client.set(key, 0)
+        except Exception as e:
+            logger.warning(f"Redis rate limit refund failed: {e}")
+    else:
+        record = ai_usage_registry.get(user_id)
+        if record and record["count"] > 0:
+            record["count"] -= 1
+
