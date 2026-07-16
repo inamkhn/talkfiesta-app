@@ -67,6 +67,10 @@ def get_or_create_user_vocabulary(
     """
     Get the user's vocabulary progress record, or initialize a new one (learned).
     """
+    from app.db.models.user import User
+    # Lock the user record to serialize concurrent operations and prevent duplicate records
+    db.query(User).filter(User.id == user_id).with_for_update().first()
+
     uv = get_user_vocab_entry(db, user_id, word_id)
     if not uv:
         # First time learning the word, schedule the first review tomorrow (Day N + 1)
@@ -258,39 +262,20 @@ def get_user_vocab_stats(db: Session, user_id: uuid.UUID) -> dict:
     """
     Compute aggregate statistics on vocabulary metrics for a user's dashboard.
     """
-    # Total learned
-    total_learned = db.query(UserVocabulary).filter(UserVocabulary.user_id == user_id).count()
-    
-    # Mastered count
-    mastered_count = db.query(UserVocabulary).filter(
-        UserVocabulary.user_id == user_id,
-        UserVocabulary.status == VocabWordStatus.MASTERED
-    ).count()
-    
-    # Learning count
-    learning_count = db.query(UserVocabulary).filter(
-        UserVocabulary.user_id == user_id,
-        UserVocabulary.status == VocabWordStatus.LEARNING
-    ).count()
-    
-    # Reviewing count
-    reviewing_count = db.query(UserVocabulary).filter(
-        UserVocabulary.user_id == user_id,
-        UserVocabulary.status == VocabWordStatus.REVIEWING
-    ).count()
-    
-    # Review due count
     now = datetime.now(timezone.utc)
-    review_due_count = db.query(UserVocabulary).filter(
-        UserVocabulary.user_id == user_id,
-        UserVocabulary.next_review_date <= now,
-        UserVocabulary.status != VocabWordStatus.MASTERED
-    ).count()
+    
+    stats_query = db.query(
+        func.count(UserVocabulary.id).label("total_learned"),
+        func.sum(func.case([(UserVocabulary.status == VocabWordStatus.MASTERED, 1)], else_=0)).label("mastered_count"),
+        func.sum(func.case([(UserVocabulary.status == VocabWordStatus.LEARNING, 1)], else_=0)).label("learning_count"),
+        func.sum(func.case([(UserVocabulary.status == VocabWordStatus.REVIEWING, 1)], else_=0)).label("reviewing_count"),
+        func.sum(func.case([((UserVocabulary.next_review_date <= now) & (UserVocabulary.status != VocabWordStatus.MASTERED), 1)], else_=0)).label("review_due_count")
+    ).filter(UserVocabulary.user_id == user_id).first()
     
     return {
-        "total_learned": total_learned,
-        "mastered_count": mastered_count,
-        "learning_count": learning_count,
-        "reviewing_count": reviewing_count,
-        "review_due_count": review_due_count,
+        "total_learned": stats_query.total_learned or 0,
+        "mastered_count": int(stats_query.mastered_count or 0),
+        "learning_count": int(stats_query.learning_count or 0),
+        "reviewing_count": int(stats_query.reviewing_count or 0),
+        "review_due_count": int(stats_query.review_due_count or 0),
     }

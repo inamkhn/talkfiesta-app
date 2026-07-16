@@ -128,8 +128,12 @@ def submit_match(
     results = []
     correct_count = 0
     
+    word_ids = [pair.word_id for pair in submission.pairs]
+    words = db.query(crud_vocab.VocabularyWord).filter(crud_vocab.VocabularyWord.id.in_(word_ids)).all()
+    word_dict = {w.id: w for w in words}
+    
     for pair in submission.pairs:
-        word = crud_vocab.get_word_by_id(db, word_id=pair.word_id)
+        word = word_dict.get(pair.word_id)
         if not word:
             continue
             
@@ -161,8 +165,12 @@ def submit_context(
     pairs_for_ai = []
     word_map = {}
     
+    word_ids = [pair.word_id for pair in submission.submissions]
+    words = db.query(crud_vocab.VocabularyWord).filter(crud_vocab.VocabularyWord.id.in_(word_ids)).all()
+    word_dict = {w.id: w for w in words}
+    
     for pair in submission.submissions:
-        word = crud_vocab.get_word_by_id(db, word_id=pair.word_id)
+        word = word_dict.get(pair.word_id)
         if not word:
             continue
             
@@ -206,7 +214,6 @@ def submit_pronunciation(
     submission: PronunciationSubmission,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
-    _rate_limit: None = Depends(check_ai_rate_limit),
 ) -> Any:
     """
     Grade user pronunciation using Deepgram STT and string matching.
@@ -275,7 +282,8 @@ def complete_practice_session(
     # Eagerly initialize user's newly-learned words into the spaced repetition queue
     profile = crud_user.get_learning_profile(db, user_id=current_user.id)
     cycle = profile.current_cycle if profile else 1
-    words = crud_vocab.get_day_words(db, cycle=cycle, day=session_data.day_number)
+    cefr_level = profile.target_cefr_level if profile else "A1"
+    words = crud_vocab.get_day_words(db, cycle=cycle, day=session_data.day_number, target_cefr_level=cefr_level)
     
     mastery_updates = []
     for word in words:
@@ -371,7 +379,9 @@ def submit_review_session(
                     next_review_date=uv.next_review_date,
                 )
             )
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.getLogger("app.api.v1.vocabulary").error(f"Failed to update review for user_vocab_id={item.user_vocab_id}: {e}", exc_info=True)
             continue
             
     return ReviewSubmissionResult(updated_words=updated_words)
@@ -399,12 +409,17 @@ def update_suggestion(
     """
     Update a suggestions status (dismiss or accept it).
     """
-    suggestion = crud_vocab.update_suggestion_status(db, suggestion_id=id, new_status=status_update)
+    suggestion = db.query(crud_vocab.PersonalizedVocabSuggestion).filter(
+        crud_vocab.PersonalizedVocabSuggestion.id == id
+    ).first()
+    
     if not suggestion or suggestion.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Suggestion not found",
         )
+        
+    suggestion = crud_vocab.update_suggestion_status(db, suggestion_id=id, new_status=status_update)
     return suggestion
 
 
