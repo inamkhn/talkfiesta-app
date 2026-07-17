@@ -15,14 +15,14 @@ export interface ButtonProps
 }
 
 const buttonVariants = {
-  base: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green disabled:pointer-events-none disabled:opacity-50",
+  base: "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   variants: {
     variant: {
-      default: "bg-brand-green text-white hover:bg-brand-green/90",
-      primary: "bg-brand-orange text-white hover:bg-brand-orange/90",
-      secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
-      outline: "border border-gray-200 bg-white hover:bg-gray-100 hover:text-gray-900",
-      ghost: "hover:bg-gray-100 hover:text-gray-900",
+      default: "bg-gradient-to-b from-brand-green to-[#135234] text-white shadow-[0_4px_14px_0_rgba(26,107,69,0.39)] hover:shadow-[0_6px_20px_rgba(26,107,69,0.23)] hover:-translate-y-0.5",
+      primary: "bg-gradient-to-b from-[#F7974E] to-brand-orange text-white shadow-[0_4px_14px_0_rgba(244,131,42,0.39)] hover:shadow-[0_6px_20px_rgba(244,131,42,0.23)] hover:-translate-y-0.5 border border-[#e6751c]",
+      secondary: "bg-white text-gray-900 shadow-sm border border-gray-200 hover:bg-gray-50 hover:shadow-md hover:-translate-y-0.5",
+      outline: "border-2 border-brand-green/20 bg-transparent text-brand-green hover:bg-brand-green/5",
+      ghost: "hover:bg-brand-green/10 hover:text-brand-green text-gray-600",
     },
     size: {
       default: "h-10 px-4 py-2",

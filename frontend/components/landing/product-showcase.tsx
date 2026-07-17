@@ -19,15 +19,23 @@ export function ProductShowcase() {
               Try Speaking Practice <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 aspect-[4/3] flex items-center justify-center shadow-lg relative">
-             <div className="text-gray-400 font-medium">Speaking Exercise UI</div>
+          <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
+            <img
+              src="/speaking-mockup.png"
+              alt="TalkFiesta speaking exercise UI with live microphone and real-time transcript"
+              className="w-full object-cover"
+            />
           </div>
         </div>
 
         {/* Vocabulary Showcase (Right Text, Left Mockup) */}
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-32">
-          <div className="order-2 lg:order-1 rounded-2xl border border-gray-200 bg-gray-50 aspect-[4/3] flex items-center justify-center shadow-lg relative">
-             <div className="text-gray-400 font-medium">Vocabulary Flashcard UI</div>
+          <div className="order-2 lg:order-1 rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
+            <img
+              src="/vocabulary-mockup.png"
+              alt="TalkFiesta vocabulary flashcard with spaced repetition quiz"
+              className="w-full object-cover"
+            />
           </div>
           <div className="order-1 lg:order-2">
             <h3 className="text-3xl font-bold text-gray-900 mb-6 font-serif">
@@ -55,8 +63,12 @@ export function ProductShowcase() {
               Start Writing Prompt <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 aspect-[4/3] flex items-center justify-center shadow-lg relative">
-             <div className="text-gray-400 font-medium">Writing Feedback UI</div>
+          <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
+            <img
+              src="/writing-mockup.png"
+              alt="TalkFiesta writing feedback interface with AI grammar and vocabulary annotations"
+              className="w-full object-cover"
+            />
           </div>
         </div>
 
