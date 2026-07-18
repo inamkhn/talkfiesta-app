@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt
 
 from app.core.config import settings
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.schemas.speaking import (
     LiveConversationSessionCreate,
     LiveConversationSessionTokenResponse,

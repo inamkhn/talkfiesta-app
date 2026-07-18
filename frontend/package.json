@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query-devtools": "^5.101.2",
+    "axios": "^1.18.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
@@ -23,6 +26,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "orval": "^8.22.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

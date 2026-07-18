@@ -5,7 +5,7 @@ from typing import List, Any
 from datetime import date, timedelta
 from uuid import UUID
 
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.api.deps import get_current_user
 from app.db.models.user import User
 from app.db.models.progress import DailyProgress

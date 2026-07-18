@@ -4,7 +4,7 @@ from uuid import UUID
 from typing import Any
 from datetime import datetime, timezone
 
-from app.db.session import get_db
+from app.api.deps import get_db
 from app.api.deps import get_current_user
 from app.middleware.rate_limit import check_ai_rate_limit
 from app.db.models.user import User
