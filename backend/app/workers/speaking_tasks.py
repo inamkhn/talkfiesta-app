@@ -7,7 +7,8 @@ from app.db.session import SessionLocal
 from app.db.models.speaking import SpeakingSubmission, LiveConversationSession
 from app.db.models.enums import SubmissionStatus, LiveSessionStatus
 from app.crud.speaking import update_submission, update_live_session
-from app.services.speaking_evaluator import process_transcript_evaluation
+from app.agents.speaking.feedback_graph import feedback_graph_app
+from app.services.deepgram_client import transcribe_audio
 
 logger = logging.getLogger(__name__)
 
@@ -30,30 +31,38 @@ def process_speaking_submission(submission_id: str) -> None:
             logger.error(f"Submission not found: {submission_id}")
             return
         
-        # 1. Mock Speech-to-Text
-        mock_transcript = "This is a mocked transcript since STT is currently bypassed. I am speaking English to practice."
-        word_count = len(mock_transcript.split())
-        duration_seconds = 15
-        pause_count = 2
-        filler_words_count = 1
+        # 1. Speech-to-Text via Deepgram
+        audio_url = submission.audio_url
+        if audio_url:
+            transcript = transcribe_audio(audio_url)
+        else:
+            transcript = "No audio URL provided for transcription."
+            
+        word_count = len(transcript.split())
+        
+        # STT currently returns text only. We estimate duration if not provided.
+        duration_seconds = submission.duration_seconds or max(15, int(word_count / 2.5))
+        pause_count = 0
+        filler_words_count = sum(transcript.lower().split().count(f) for f in ["um", "uh", "like"])
         
         # Update submission with STT details
-        submission.transcript = mock_transcript
+        submission.transcript = transcript
         submission.duration_seconds = duration_seconds
         submission.word_count = word_count
-        submission.words_per_minute = (word_count / duration_seconds) * 60
+        submission.words_per_minute = (word_count / duration_seconds) * 60 if duration_seconds > 0 else 0
         submission.pause_count = pause_count
         submission.filler_words_count = filler_words_count
         db.commit()
         
-        # 2. AI Evaluation Pipeline
-        feedback = process_transcript_evaluation(
-            transcript=mock_transcript,
-            duration_sec=duration_seconds,
-            word_count=word_count,
-            pause_count=pause_count,
-            filler_words_count=filler_words_count
-        )
+        # 2. AI Evaluation Pipeline via LangGraph
+        state = feedback_graph_app.invoke({
+            "transcript": transcript,
+            "duration_sec": duration_seconds,
+            "word_count": word_count,
+            "pause_count": pause_count,
+            "filler_words_count": filler_words_count
+        })
+        feedback = state["final_results"]
         
         # 3. Update Database
         submission.fluency_score = feedback["fluency_score"]
@@ -101,9 +110,9 @@ def process_live_session_analysis(session_id: str) -> None:
             return
             
         transcript_turns = live_session.transcript_json or []
-        # Filter to only the user's turns for scoring
-        user_turns = [turn["text"] for turn in transcript_turns if turn.get("speaker", "").lower() == "user"]
-        full_user_transcript = " ".join(user_turns)
+        # Filter to only the user's turns for scoring, handling potential missing keys safely
+        user_turns = [turn.get("text", "") for turn in transcript_turns if isinstance(turn, dict) and turn.get("speaker", "").lower() == "user"]
+        full_user_transcript = " ".join(user_turns).strip()
         
         if not full_user_transcript:
             logger.warning(f"No user transcript found for live session {session_id}")
@@ -114,14 +123,15 @@ def process_live_session_analysis(session_id: str) -> None:
         pause_count = 0  # Hard to accurately measure from live text stream without raw audio gaps
         filler_words_count = sum(full_user_transcript.lower().split().count(f) for f in ["um", "uh", "like"])
         
-        # 1. AI Evaluation Pipeline
-        feedback = process_transcript_evaluation(
-            transcript=full_user_transcript,
-            duration_sec=duration_seconds,
-            word_count=word_count,
-            pause_count=pause_count,
-            filler_words_count=filler_words_count
-        )
+        # 1. AI Evaluation Pipeline via LangGraph
+        state = feedback_graph_app.invoke({
+            "transcript": full_user_transcript,
+            "duration_sec": duration_seconds,
+            "word_count": word_count,
+            "pause_count": pause_count,
+            "filler_words_count": filler_words_count
+        })
+        feedback = state["final_results"]
         
         # 2. Create/Update linked SpeakingSubmission
         submission = SpeakingSubmission(

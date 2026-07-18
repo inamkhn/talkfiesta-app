@@ -39,11 +39,12 @@ def transcribe_audio(audio_url: str, target_word: Optional[str] = None) -> str:
                 raise DeepgramAPIError(f"Deepgram returned status {response.status_code}")
             
             data = response.json()
-            channels = data.get("results", {}).get("channels", [])
+            results = data.get("results") or {}
+            channels = results.get("channels") or []
             if not channels:
                 raise DeepgramAPIError("Malformed Deepgram response (no channels)")
             
-            alternatives = channels[0].get("alternatives", [])
+            alternatives = channels[0].get("alternatives") or []
             if not alternatives:
                 raise DeepgramAPIError("Malformed Deepgram response (no alternatives)")
                 
