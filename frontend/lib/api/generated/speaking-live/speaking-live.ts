@@ -53,48 +53,23 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type startLiveSessionApiV1SpeakingLiveSessionPostResponse200 = {
-  data: LiveConversationSessionTokenResponse
-  status: 200
-}
-
-export type startLiveSessionApiV1SpeakingLiveSessionPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type startLiveSessionApiV1SpeakingLiveSessionPostResponseSuccess = (startLiveSessionApiV1SpeakingLiveSessionPostResponse200) & {
-  headers: Headers;
-};
-export type startLiveSessionApiV1SpeakingLiveSessionPostResponseError = (startLiveSessionApiV1SpeakingLiveSessionPostResponse422) & {
-  headers: Headers;
-};
-
-export type startLiveSessionApiV1SpeakingLiveSessionPostResponse = (startLiveSessionApiV1SpeakingLiveSessionPostResponseSuccess | startLiveSessionApiV1SpeakingLiveSessionPostResponseError)
-
-export const getStartLiveSessionApiV1SpeakingLiveSessionPostUrl = () => {
-
-
-
-
-  return `/api/v1/speaking/live/session`
-}
-
 /**
  * Create a new live conversation session (Flow B) and return an ephemeral token.
  * @summary Start Live Session
  */
-export const startLiveSessionApiV1SpeakingLiveSessionPost = async (liveConversationSessionCreate: LiveConversationSessionCreate, options?: RequestInit): Promise<startLiveSessionApiV1SpeakingLiveSessionPostResponse> => {
+export const startLiveSessionApiV1SpeakingLiveSessionPost = (
+    liveConversationSessionCreate: LiveConversationSessionCreate,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<startLiveSessionApiV1SpeakingLiveSessionPostResponse>(getStartLiveSessionApiV1SpeakingLiveSessionPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(liveConversationSessionCreate)
-  }
-);}
 
+      return customInstance<LiveConversationSessionTokenResponse>(
+      {url: `/api/v1/speaking/live/session`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: liveConversationSessionCreate, signal
+    },
+      options);
+    }
 
 
 
@@ -143,49 +118,24 @@ export const useStartLiveSessionApiV1SpeakingLiveSessionPost = <TError = HTTPVal
       > => {
       return useMutation(getStartLiveSessionApiV1SpeakingLiveSessionPostMutationOptions(options), queryClient);
     }
-    export type endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse200 = {
-  data: LiveConversationSessionResponse
-  status: 200
-}
-
-export type endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponseSuccess = (endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse200) & {
-  headers: Headers;
-};
-export type endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponseError = (endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse422) & {
-  headers: Headers;
-};
-
-export type endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse = (endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponseSuccess | endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponseError)
-
-export const getEndLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/v1/speaking/live/session/${sessionId}/end`
-}
-
-/**
+    /**
  * End the live conversation session, submit the transcript, and trigger async analysis.
  * @summary End Live Session
  */
-export const endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPost = async (sessionId: string,
-    liveConversationSessionEnd: LiveConversationSessionEnd, options?: RequestInit): Promise<endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse> => {
+export const endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPost = (
+    sessionId: string,
+    liveConversationSessionEnd: LiveConversationSessionEnd,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<endLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostResponse>(getEndLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostUrl(sessionId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(liveConversationSessionEnd)
-  }
-);}
 
+      return customInstance<LiveConversationSessionResponse>(
+      {url: `/api/v1/speaking/live/session/${sessionId}/end`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: liveConversationSessionEnd, signal
+    },
+      options);
+    }
 
 
 
@@ -234,48 +184,21 @@ export const useEndLiveSessionApiV1SpeakingLiveSessionSessionIdEndPost = <TError
       > => {
       return useMutation(getEndLiveSessionApiV1SpeakingLiveSessionSessionIdEndPostMutationOptions(options), queryClient);
     }
-    export type fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse200 = {
-  data: LiveConversationSessionResponse
-  status: 200
-}
-
-export type fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponseSuccess = (fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse200) & {
-  headers: Headers;
-};
-export type fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponseError = (fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse = (fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponseSuccess | fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponseError)
-
-export const getFetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/v1/speaking/live/session/${sessionId}`
-}
-
-/**
+    /**
  * Fetch the details of a live session.
  * @summary Fetch Live Session
  */
-export const fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGet = async (sessionId: string, options?: RequestInit): Promise<fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse> => {
-
-  return customInstance<fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetResponse>(getFetchLiveSessionApiV1SpeakingLiveSessionSessionIdGetUrl(sessionId),
-  {
-    ...options,
-    method: 'GET'
+export const fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGet = (
+    sessionId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<LiveConversationSessionResponse>(
+      {url: `/api/v1/speaking/live/session/${sessionId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -296,7 +219,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGet>>> = ({ signal }) => fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGet(sessionId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGet>>> = ({ signal }) => fetchLiveSessionApiV1SpeakingLiveSessionSessionIdGet(sessionId, requestOptions, signal);
 
 
 

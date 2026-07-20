@@ -69,48 +69,21 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type getDailyVocabularyApiV1VocabularyDayDayGetResponse200 = {
-  data: DayWordsResponse
-  status: 200
-}
-
-export type getDailyVocabularyApiV1VocabularyDayDayGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getDailyVocabularyApiV1VocabularyDayDayGetResponseSuccess = (getDailyVocabularyApiV1VocabularyDayDayGetResponse200) & {
-  headers: Headers;
-};
-export type getDailyVocabularyApiV1VocabularyDayDayGetResponseError = (getDailyVocabularyApiV1VocabularyDayDayGetResponse422) & {
-  headers: Headers;
-};
-
-export type getDailyVocabularyApiV1VocabularyDayDayGetResponse = (getDailyVocabularyApiV1VocabularyDayDayGetResponseSuccess | getDailyVocabularyApiV1VocabularyDayDayGetResponseError)
-
-export const getGetDailyVocabularyApiV1VocabularyDayDayGetUrl = (day: number,) => {
-
-
-
-
-  return `/api/v1/vocabulary/day/${day}`
-}
-
 /**
  * Retrieve today's list of 10 vocabulary words plus pre-generated exercises.
  * @summary Get Daily Vocabulary
  */
-export const getDailyVocabularyApiV1VocabularyDayDayGet = async (day: number, options?: RequestInit): Promise<getDailyVocabularyApiV1VocabularyDayDayGetResponse> => {
-
-  return customInstance<getDailyVocabularyApiV1VocabularyDayDayGetResponse>(getGetDailyVocabularyApiV1VocabularyDayDayGetUrl(day),
-  {
-    ...options,
-    method: 'GET'
+export const getDailyVocabularyApiV1VocabularyDayDayGet = (
+    day: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<DayWordsResponse>(
+      {url: `/api/v1/vocabulary/day/${day}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -131,7 +104,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyVocabularyApiV1VocabularyDayDayGet>>> = ({ signal }) => getDailyVocabularyApiV1VocabularyDayDayGet(day, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyVocabularyApiV1VocabularyDayDayGet>>> = ({ signal }) => getDailyVocabularyApiV1VocabularyDayDayGet(day, requestOptions, signal);
 
 
 
@@ -189,48 +162,23 @@ export function useGetDailyVocabularyApiV1VocabularyDayDayGet<TData = Awaited<Re
 
 
 
-export type submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse200 = {
-  data: FillBlankResult
-  status: 200
-}
-
-export type submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponseSuccess = (submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponseError = (submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse = (submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponseSuccess | submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponseError)
-
-export const getSubmitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/exercise/fill-blank/submit`
-}
-
 /**
  * Deterministic grading for the fill-in-the-blank exercise. (No LLM call)
  * @summary Submit Fill Blank
  */
-export const submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPost = async (fillBlankSubmission: FillBlankSubmission, options?: RequestInit): Promise<submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse> => {
+export const submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPost = (
+    fillBlankSubmission: FillBlankSubmission,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostResponse>(getSubmitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(fillBlankSubmission)
-  }
-);}
 
+      return customInstance<FillBlankResult>(
+      {url: `/api/v1/vocabulary/exercise/fill-blank/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: fillBlankSubmission, signal
+    },
+      options);
+    }
 
 
 
@@ -279,48 +227,23 @@ export const useSubmitFillBlankApiV1VocabularyExerciseFillBlankSubmitPost = <TEr
       > => {
       return useMutation(getSubmitFillBlankApiV1VocabularyExerciseFillBlankSubmitPostMutationOptions(options), queryClient);
     }
-    export type submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse200 = {
-  data: MatchResult
-  status: 200
-}
-
-export type submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitMatchApiV1VocabularyExerciseMatchSubmitPostResponseSuccess = (submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitMatchApiV1VocabularyExerciseMatchSubmitPostResponseError = (submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse = (submitMatchApiV1VocabularyExerciseMatchSubmitPostResponseSuccess | submitMatchApiV1VocabularyExerciseMatchSubmitPostResponseError)
-
-export const getSubmitMatchApiV1VocabularyExerciseMatchSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/exercise/match/submit`
-}
-
-/**
+    /**
  * Deterministic grading for definition matching exercise. (No LLM call)
  * @summary Submit Match
  */
-export const submitMatchApiV1VocabularyExerciseMatchSubmitPost = async (matchSubmission: MatchSubmission, options?: RequestInit): Promise<submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse> => {
+export const submitMatchApiV1VocabularyExerciseMatchSubmitPost = (
+    matchSubmission: MatchSubmission,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitMatchApiV1VocabularyExerciseMatchSubmitPostResponse>(getSubmitMatchApiV1VocabularyExerciseMatchSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(matchSubmission)
-  }
-);}
 
+      return customInstance<MatchResult>(
+      {url: `/api/v1/vocabulary/exercise/match/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: matchSubmission, signal
+    },
+      options);
+    }
 
 
 
@@ -369,48 +292,23 @@ export const useSubmitMatchApiV1VocabularyExerciseMatchSubmitPost = <TError = HT
       > => {
       return useMutation(getSubmitMatchApiV1VocabularyExerciseMatchSubmitPostMutationOptions(options), queryClient);
     }
-    export type submitContextApiV1VocabularyExerciseContextSubmitPostResponse200 = {
-  data: ContextResult
-  status: 200
-}
-
-export type submitContextApiV1VocabularyExerciseContextSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitContextApiV1VocabularyExerciseContextSubmitPostResponseSuccess = (submitContextApiV1VocabularyExerciseContextSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitContextApiV1VocabularyExerciseContextSubmitPostResponseError = (submitContextApiV1VocabularyExerciseContextSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitContextApiV1VocabularyExerciseContextSubmitPostResponse = (submitContextApiV1VocabularyExerciseContextSubmitPostResponseSuccess | submitContextApiV1VocabularyExerciseContextSubmitPostResponseError)
-
-export const getSubmitContextApiV1VocabularyExerciseContextSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/exercise/context/submit`
-}
-
-/**
+    /**
  * Grading for 'Use in Context' sentences. Evaluates all 5 sentences together using 1 batched Gemini call.
  * @summary Submit Context
  */
-export const submitContextApiV1VocabularyExerciseContextSubmitPost = async (contextSubmission: ContextSubmission, options?: RequestInit): Promise<submitContextApiV1VocabularyExerciseContextSubmitPostResponse> => {
+export const submitContextApiV1VocabularyExerciseContextSubmitPost = (
+    contextSubmission: ContextSubmission,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitContextApiV1VocabularyExerciseContextSubmitPostResponse>(getSubmitContextApiV1VocabularyExerciseContextSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(contextSubmission)
-  }
-);}
 
+      return customInstance<ContextResult>(
+      {url: `/api/v1/vocabulary/exercise/context/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: contextSubmission, signal
+    },
+      options);
+    }
 
 
 
@@ -459,48 +357,23 @@ export const useSubmitContextApiV1VocabularyExerciseContextSubmitPost = <TError 
       > => {
       return useMutation(getSubmitContextApiV1VocabularyExerciseContextSubmitPostMutationOptions(options), queryClient);
     }
-    export type submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse200 = {
-  data: PronunciationResult
-  status: 200
-}
-
-export type submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponseSuccess = (submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponseError = (submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse = (submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponseSuccess | submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponseError)
-
-export const getSubmitPronunciationApiV1VocabularyExercisePronunciationSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/exercise/pronunciation/submit`
-}
-
-/**
+    /**
  * Grade user pronunciation using Deepgram STT and string matching.
  * @summary Submit Pronunciation
  */
-export const submitPronunciationApiV1VocabularyExercisePronunciationSubmitPost = async (pronunciationSubmission: PronunciationSubmission, options?: RequestInit): Promise<submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse> => {
+export const submitPronunciationApiV1VocabularyExercisePronunciationSubmitPost = (
+    pronunciationSubmission: PronunciationSubmission,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitPronunciationApiV1VocabularyExercisePronunciationSubmitPostResponse>(getSubmitPronunciationApiV1VocabularyExercisePronunciationSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(pronunciationSubmission)
-  }
-);}
 
+      return customInstance<PronunciationResult>(
+      {url: `/api/v1/vocabulary/exercise/pronunciation/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: pronunciationSubmission, signal
+    },
+      options);
+    }
 
 
 
@@ -549,48 +422,23 @@ export const useSubmitPronunciationApiV1VocabularyExercisePronunciationSubmitPos
       > => {
       return useMutation(getSubmitPronunciationApiV1VocabularyExercisePronunciationSubmitPostMutationOptions(options), queryClient);
     }
-    export type completePracticeSessionApiV1VocabularySessionCompletePostResponse200 = {
-  data: SessionCompleteResponse
-  status: 200
-}
-
-export type completePracticeSessionApiV1VocabularySessionCompletePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type completePracticeSessionApiV1VocabularySessionCompletePostResponseSuccess = (completePracticeSessionApiV1VocabularySessionCompletePostResponse200) & {
-  headers: Headers;
-};
-export type completePracticeSessionApiV1VocabularySessionCompletePostResponseError = (completePracticeSessionApiV1VocabularySessionCompletePostResponse422) & {
-  headers: Headers;
-};
-
-export type completePracticeSessionApiV1VocabularySessionCompletePostResponse = (completePracticeSessionApiV1VocabularySessionCompletePostResponseSuccess | completePracticeSessionApiV1VocabularySessionCompletePostResponseError)
-
-export const getCompletePracticeSessionApiV1VocabularySessionCompletePostUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/session/complete`
-}
-
-/**
+    /**
  * Finalize daily practice scores, register newly learned words in user review records, and log the practice stats.
  * @summary Complete Practice Session
  */
-export const completePracticeSessionApiV1VocabularySessionCompletePost = async (sessionCompleteRequest: SessionCompleteRequest, options?: RequestInit): Promise<completePracticeSessionApiV1VocabularySessionCompletePostResponse> => {
+export const completePracticeSessionApiV1VocabularySessionCompletePost = (
+    sessionCompleteRequest: SessionCompleteRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<completePracticeSessionApiV1VocabularySessionCompletePostResponse>(getCompletePracticeSessionApiV1VocabularySessionCompletePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(sessionCompleteRequest)
-  }
-);}
 
+      return customInstance<SessionCompleteResponse>(
+      {url: `/api/v1/vocabulary/session/complete`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: sessionCompleteRequest, signal
+    },
+      options);
+    }
 
 
 
@@ -639,55 +487,22 @@ export const useCompletePracticeSessionApiV1VocabularySessionCompletePost = <TEr
       > => {
       return useMutation(getCompletePracticeSessionApiV1VocabularySessionCompletePostMutationOptions(options), queryClient);
     }
-    export type getTodayReviewsApiV1VocabularyReviewTodayGetResponse200 = {
-  data: ReviewQueueResponse
-  status: 200
-}
-
-export type getTodayReviewsApiV1VocabularyReviewTodayGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getTodayReviewsApiV1VocabularyReviewTodayGetResponseSuccess = (getTodayReviewsApiV1VocabularyReviewTodayGetResponse200) & {
-  headers: Headers;
-};
-export type getTodayReviewsApiV1VocabularyReviewTodayGetResponseError = (getTodayReviewsApiV1VocabularyReviewTodayGetResponse422) & {
-  headers: Headers;
-};
-
-export type getTodayReviewsApiV1VocabularyReviewTodayGetResponse = (getTodayReviewsApiV1VocabularyReviewTodayGetResponseSuccess | getTodayReviewsApiV1VocabularyReviewTodayGetResponseError)
-
-export const getGetTodayReviewsApiV1VocabularyReviewTodayGetUrl = (params?: GetTodayReviewsApiV1VocabularyReviewTodayGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/vocabulary/review/today?${stringifiedParams}` : `/api/v1/vocabulary/review/today`
-}
-
-/**
+    /**
  * Retrieve old words currently due for spaced-repetition review.
  * @summary Get Today Reviews
  */
-export const getTodayReviewsApiV1VocabularyReviewTodayGet = async (params?: GetTodayReviewsApiV1VocabularyReviewTodayGetParams, options?: RequestInit): Promise<getTodayReviewsApiV1VocabularyReviewTodayGetResponse> => {
-
-  return customInstance<getTodayReviewsApiV1VocabularyReviewTodayGetResponse>(getGetTodayReviewsApiV1VocabularyReviewTodayGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const getTodayReviewsApiV1VocabularyReviewTodayGet = (
+    params?: GetTodayReviewsApiV1VocabularyReviewTodayGetParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<ReviewQueueResponse>(
+      {url: `/api/v1/vocabulary/review/today`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
@@ -708,7 +523,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTodayReviewsApiV1VocabularyReviewTodayGet>>> = ({ signal }) => getTodayReviewsApiV1VocabularyReviewTodayGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTodayReviewsApiV1VocabularyReviewTodayGet>>> = ({ signal }) => getTodayReviewsApiV1VocabularyReviewTodayGet(params, requestOptions, signal);
 
 
 
@@ -766,48 +581,23 @@ export function useGetTodayReviewsApiV1VocabularyReviewTodayGet<TData = Awaited<
 
 
 
-export type submitReviewSessionApiV1VocabularyReviewSubmitPostResponse200 = {
-  data: ReviewSubmissionResult
-  status: 200
-}
-
-export type submitReviewSessionApiV1VocabularyReviewSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitReviewSessionApiV1VocabularyReviewSubmitPostResponseSuccess = (submitReviewSessionApiV1VocabularyReviewSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitReviewSessionApiV1VocabularyReviewSubmitPostResponseError = (submitReviewSessionApiV1VocabularyReviewSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitReviewSessionApiV1VocabularyReviewSubmitPostResponse = (submitReviewSessionApiV1VocabularyReviewSubmitPostResponseSuccess | submitReviewSessionApiV1VocabularyReviewSubmitPostResponseError)
-
-export const getSubmitReviewSessionApiV1VocabularyReviewSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/review/submit`
-}
-
 /**
  * Process spaced-repetition grades, adapting intervals and mastery levels.
  * @summary Submit Review Session
  */
-export const submitReviewSessionApiV1VocabularyReviewSubmitPost = async (reviewSubmission: ReviewSubmission, options?: RequestInit): Promise<submitReviewSessionApiV1VocabularyReviewSubmitPostResponse> => {
+export const submitReviewSessionApiV1VocabularyReviewSubmitPost = (
+    reviewSubmission: ReviewSubmission,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitReviewSessionApiV1VocabularyReviewSubmitPostResponse>(getSubmitReviewSessionApiV1VocabularyReviewSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(reviewSubmission)
-  }
-);}
 
+      return customInstance<ReviewSubmissionResult>(
+      {url: `/api/v1/vocabulary/review/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: reviewSubmission, signal
+    },
+      options);
+    }
 
 
 
@@ -856,41 +646,21 @@ export const useSubmitReviewSessionApiV1VocabularyReviewSubmitPost = <TError = H
       > => {
       return useMutation(getSubmitReviewSessionApiV1VocabularyReviewSubmitPostMutationOptions(options), queryClient);
     }
-    export type getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponse200 = {
-  data: PersonalSuggestionResponse[]
-  status: 200
-}
-
-export type getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponseSuccess = (getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponse = (getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponseSuccess)
-
-export const getGetPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/personal-suggestions`
-}
-
-/**
+    /**
  * Retrieve pending custom suggestions generated asynchronously from user transcripts.
  * @summary Get Personalized Suggestions
  */
-export const getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGet = async ( options?: RequestInit): Promise<getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponse> => {
+export const getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGet = (
 
-  return customInstance<getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetResponse>(getGetPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<PersonalSuggestionResponse[]>(
+      {url: `/api/v1/vocabulary/personal-suggestions`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -911,7 +681,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGet>>> = ({ signal }) => getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGet>>> = ({ signal }) => getPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsGet(requestOptions, signal);
 
 
 
@@ -969,57 +739,23 @@ export function useGetPersonalizedSuggestionsApiV1VocabularyPersonalSuggestionsG
 
 
 
-export type updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse200 = {
-  data: PersonalSuggestionResponse
-  status: 200
-}
-
-export type updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponseSuccess = (updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse200) & {
-  headers: Headers;
-};
-export type updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponseError = (updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse422) & {
-  headers: Headers;
-};
-
-export type updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse = (updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponseSuccess | updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponseError)
-
-export const getUpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPutUrl = (id: string,
-    params: UpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPutParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/vocabulary/personal-suggestions/${id}?${stringifiedParams}` : `/api/v1/vocabulary/personal-suggestions/${id}`
-}
-
 /**
  * Update a suggestions status (dismiss or accept it).
  * @summary Update Suggestion
  */
-export const updateSuggestionApiV1VocabularyPersonalSuggestionsIdPut = async (id: string,
-    params: UpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPutParams, options?: RequestInit): Promise<updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse> => {
-
-  return customInstance<updateSuggestionApiV1VocabularyPersonalSuggestionsIdPutResponse>(getUpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPutUrl(id,params),
-  {
-    ...options,
-    method: 'PUT'
+export const updateSuggestionApiV1VocabularyPersonalSuggestionsIdPut = (
+    id: string,
+    params: UpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPutParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<PersonalSuggestionResponse>(
+      {url: `/api/v1/vocabulary/personal-suggestions/${id}`, method: 'PUT',
+        params, signal
+    },
+      options);
+    }
 
 
 
@@ -1068,55 +804,22 @@ export const useUpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPut = <TErro
       > => {
       return useMutation(getUpdateSuggestionApiV1VocabularyPersonalSuggestionsIdPutMutationOptions(options), queryClient);
     }
-    export type getVocabularyBankApiV1VocabularyBankGetResponse200 = {
-  data: VocabBankResponse
-  status: 200
-}
-
-export type getVocabularyBankApiV1VocabularyBankGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getVocabularyBankApiV1VocabularyBankGetResponseSuccess = (getVocabularyBankApiV1VocabularyBankGetResponse200) & {
-  headers: Headers;
-};
-export type getVocabularyBankApiV1VocabularyBankGetResponseError = (getVocabularyBankApiV1VocabularyBankGetResponse422) & {
-  headers: Headers;
-};
-
-export type getVocabularyBankApiV1VocabularyBankGetResponse = (getVocabularyBankApiV1VocabularyBankGetResponseSuccess | getVocabularyBankApiV1VocabularyBankGetResponseError)
-
-export const getGetVocabularyBankApiV1VocabularyBankGetUrl = (params?: GetVocabularyBankApiV1VocabularyBankGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/vocabulary/bank?${stringifiedParams}` : `/api/v1/vocabulary/bank`
-}
-
-/**
+    /**
  * Fetch a paginated personal list of all words learned, with mastery states.
  * @summary Get Vocabulary Bank
  */
-export const getVocabularyBankApiV1VocabularyBankGet = async (params?: GetVocabularyBankApiV1VocabularyBankGetParams, options?: RequestInit): Promise<getVocabularyBankApiV1VocabularyBankGetResponse> => {
-
-  return customInstance<getVocabularyBankApiV1VocabularyBankGetResponse>(getGetVocabularyBankApiV1VocabularyBankGetUrl(params),
-  {
-    ...options,
-    method: 'GET'
+export const getVocabularyBankApiV1VocabularyBankGet = (
+    params?: GetVocabularyBankApiV1VocabularyBankGetParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<VocabBankResponse>(
+      {url: `/api/v1/vocabulary/bank`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
@@ -1137,7 +840,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVocabularyBankApiV1VocabularyBankGet>>> = ({ signal }) => getVocabularyBankApiV1VocabularyBankGet(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVocabularyBankApiV1VocabularyBankGet>>> = ({ signal }) => getVocabularyBankApiV1VocabularyBankGet(params, requestOptions, signal);
 
 
 
@@ -1195,41 +898,21 @@ export function useGetVocabularyBankApiV1VocabularyBankGet<TData = Awaited<Retur
 
 
 
-export type getVocabStatisticsApiV1VocabularyStatsGetResponse200 = {
-  data: VocabStatsResponse
-  status: 200
-}
-
-export type getVocabStatisticsApiV1VocabularyStatsGetResponseSuccess = (getVocabStatisticsApiV1VocabularyStatsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getVocabStatisticsApiV1VocabularyStatsGetResponse = (getVocabStatisticsApiV1VocabularyStatsGetResponseSuccess)
-
-export const getGetVocabStatisticsApiV1VocabularyStatsGetUrl = () => {
-
-
-
-
-  return `/api/v1/vocabulary/stats`
-}
-
 /**
  * Get user vocabulary progress metrics for dashboard display.
  * @summary Get Vocab Statistics
  */
-export const getVocabStatisticsApiV1VocabularyStatsGet = async ( options?: RequestInit): Promise<getVocabStatisticsApiV1VocabularyStatsGetResponse> => {
+export const getVocabStatisticsApiV1VocabularyStatsGet = (
 
-  return customInstance<getVocabStatisticsApiV1VocabularyStatsGetResponse>(getGetVocabStatisticsApiV1VocabularyStatsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<VocabStatsResponse>(
+      {url: `/api/v1/vocabulary/stats`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -1250,7 +933,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVocabStatisticsApiV1VocabularyStatsGet>>> = ({ signal }) => getVocabStatisticsApiV1VocabularyStatsGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVocabStatisticsApiV1VocabularyStatsGet>>> = ({ signal }) => getVocabStatisticsApiV1VocabularyStatsGet(requestOptions, signal);
 
 
 

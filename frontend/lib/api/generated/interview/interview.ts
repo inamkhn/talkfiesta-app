@@ -54,49 +54,24 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type startInterviewSessionApiV1InterviewStartPostResponse200 = {
-  data: InterviewStartResponse
-  status: 200
-}
-
-export type startInterviewSessionApiV1InterviewStartPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type startInterviewSessionApiV1InterviewStartPostResponseSuccess = (startInterviewSessionApiV1InterviewStartPostResponse200) & {
-  headers: Headers;
-};
-export type startInterviewSessionApiV1InterviewStartPostResponseError = (startInterviewSessionApiV1InterviewStartPostResponse422) & {
-  headers: Headers;
-};
-
-export type startInterviewSessionApiV1InterviewStartPostResponse = (startInterviewSessionApiV1InterviewStartPostResponseSuccess | startInterviewSessionApiV1InterviewStartPostResponseError)
-
-export const getStartInterviewSessionApiV1InterviewStartPostUrl = () => {
-
-
-
-
-  return `/api/v1/interview/start`
-}
-
 /**
  * Initialize a new Multi-Agent Interview Panel session.
  * Returns the session ID and the opening question from the first agent.
  * @summary Start Interview Session
  */
-export const startInterviewSessionApiV1InterviewStartPost = async (interviewSessionCreate: InterviewSessionCreate, options?: RequestInit): Promise<startInterviewSessionApiV1InterviewStartPostResponse> => {
+export const startInterviewSessionApiV1InterviewStartPost = (
+    interviewSessionCreate: InterviewSessionCreate,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<startInterviewSessionApiV1InterviewStartPostResponse>(getStartInterviewSessionApiV1InterviewStartPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(interviewSessionCreate)
-  }
-);}
 
+      return customInstance<InterviewStartResponse>(
+      {url: `/api/v1/interview/start`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: interviewSessionCreate, signal
+    },
+      options);
+    }
 
 
 
@@ -145,49 +120,24 @@ export const useStartInterviewSessionApiV1InterviewStartPost = <TError = HTTPVal
       > => {
       return useMutation(getStartInterviewSessionApiV1InterviewStartPostMutationOptions(options), queryClient);
     }
-    export type processTurnApiV1InterviewSessionIdTurnPostResponse200 = {
-  data: InterviewTurnResponse
-  status: 200
-}
-
-export type processTurnApiV1InterviewSessionIdTurnPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type processTurnApiV1InterviewSessionIdTurnPostResponseSuccess = (processTurnApiV1InterviewSessionIdTurnPostResponse200) & {
-  headers: Headers;
-};
-export type processTurnApiV1InterviewSessionIdTurnPostResponseError = (processTurnApiV1InterviewSessionIdTurnPostResponse422) & {
-  headers: Headers;
-};
-
-export type processTurnApiV1InterviewSessionIdTurnPostResponse = (processTurnApiV1InterviewSessionIdTurnPostResponseSuccess | processTurnApiV1InterviewSessionIdTurnPostResponseError)
-
-export const getProcessTurnApiV1InterviewSessionIdTurnPostUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/v1/interview/${sessionId}/turn`
-}
-
-/**
+    /**
  * Process a single turn. The user sends their transcript, the AI responds and routes.
  * @summary Process Turn
  */
-export const processTurnApiV1InterviewSessionIdTurnPost = async (sessionId: string,
-    interviewTurnCreate: InterviewTurnCreate, options?: RequestInit): Promise<processTurnApiV1InterviewSessionIdTurnPostResponse> => {
+export const processTurnApiV1InterviewSessionIdTurnPost = (
+    sessionId: string,
+    interviewTurnCreate: InterviewTurnCreate,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<processTurnApiV1InterviewSessionIdTurnPostResponse>(getProcessTurnApiV1InterviewSessionIdTurnPostUrl(sessionId),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(interviewTurnCreate)
-  }
-);}
 
+      return customInstance<InterviewTurnResponse>(
+      {url: `/api/v1/interview/${sessionId}/turn`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: interviewTurnCreate, signal
+    },
+      options);
+    }
 
 
 
@@ -236,48 +186,21 @@ export const useProcessTurnApiV1InterviewSessionIdTurnPost = <TError = HTTPValid
       > => {
       return useMutation(getProcessTurnApiV1InterviewSessionIdTurnPostMutationOptions(options), queryClient);
     }
-    export type getSessionApiV1InterviewSessionIdGetResponse200 = {
-  data: InterviewSessionResponse
-  status: 200
-}
-
-export type getSessionApiV1InterviewSessionIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getSessionApiV1InterviewSessionIdGetResponseSuccess = (getSessionApiV1InterviewSessionIdGetResponse200) & {
-  headers: Headers;
-};
-export type getSessionApiV1InterviewSessionIdGetResponseError = (getSessionApiV1InterviewSessionIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getSessionApiV1InterviewSessionIdGetResponse = (getSessionApiV1InterviewSessionIdGetResponseSuccess | getSessionApiV1InterviewSessionIdGetResponseError)
-
-export const getGetSessionApiV1InterviewSessionIdGetUrl = (sessionId: string,) => {
-
-
-
-
-  return `/api/v1/interview/${sessionId}`
-}
-
-/**
+    /**
  * Fetch an interview session.
  * @summary Get Session
  */
-export const getSessionApiV1InterviewSessionIdGet = async (sessionId: string, options?: RequestInit): Promise<getSessionApiV1InterviewSessionIdGetResponse> => {
-
-  return customInstance<getSessionApiV1InterviewSessionIdGetResponse>(getGetSessionApiV1InterviewSessionIdGetUrl(sessionId),
-  {
-    ...options,
-    method: 'GET'
+export const getSessionApiV1InterviewSessionIdGet = (
+    sessionId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<InterviewSessionResponse>(
+      {url: `/api/v1/interview/${sessionId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -298,7 +221,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSessionApiV1InterviewSessionIdGet>>> = ({ signal }) => getSessionApiV1InterviewSessionIdGet(sessionId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSessionApiV1InterviewSessionIdGet>>> = ({ signal }) => getSessionApiV1InterviewSessionIdGet(sessionId, requestOptions, signal);
 
 
 

@@ -8,6 +8,7 @@ export default defineConfig({
       target: './lib/api/generated/talkfiesta.ts',
       schemas: './lib/api/generated/schemas',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: './lib/api/axios.ts',

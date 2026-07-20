@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ReactQueryProvider } from "../components/providers/react-query-provider";
+import { AuthProvider } from "../components/providers/auth-provider";
+import { AuthGuard } from "../components/providers/auth-guard";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,7 +31,13 @@ export default function RootLayout({
       className={`${inter.variable} ${playfair.variable} h-full antialiased scroll-smooth`}
     >
       <body className="min-h-full flex flex-col font-sans">
-        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <ReactQueryProvider>
+          <AuthProvider>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+          </AuthProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

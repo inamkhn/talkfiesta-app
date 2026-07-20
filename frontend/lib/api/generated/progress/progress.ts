@@ -53,41 +53,21 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type getDashboardApiV1ProgressDashboardGetResponse200 = {
-  data: DashboardSummaryResponse
-  status: 200
-}
-
-export type getDashboardApiV1ProgressDashboardGetResponseSuccess = (getDashboardApiV1ProgressDashboardGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getDashboardApiV1ProgressDashboardGetResponse = (getDashboardApiV1ProgressDashboardGetResponseSuccess)
-
-export const getGetDashboardApiV1ProgressDashboardGetUrl = () => {
-
-
-
-
-  return `/api/v1/progress/dashboard`
-}
-
 /**
  * Get the unified dashboard progress for today.
  * @summary Get Dashboard
  */
-export const getDashboardApiV1ProgressDashboardGet = async ( options?: RequestInit): Promise<getDashboardApiV1ProgressDashboardGetResponse> => {
+export const getDashboardApiV1ProgressDashboardGet = (
 
-  return customInstance<getDashboardApiV1ProgressDashboardGetResponse>(getGetDashboardApiV1ProgressDashboardGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<DashboardSummaryResponse>(
+      {url: `/api/v1/progress/dashboard`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -108,7 +88,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardApiV1ProgressDashboardGet>>> = ({ signal }) => getDashboardApiV1ProgressDashboardGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardApiV1ProgressDashboardGet>>> = ({ signal }) => getDashboardApiV1ProgressDashboardGet(requestOptions, signal);
 
 
 
@@ -166,41 +146,21 @@ export function useGetDashboardApiV1ProgressDashboardGet<TData = Awaited<ReturnT
 
 
 
-export type getProgressHistoryApiV1ProgressHistoryGetResponse200 = {
-  data: DailyProgressResponse[]
-  status: 200
-}
-
-export type getProgressHistoryApiV1ProgressHistoryGetResponseSuccess = (getProgressHistoryApiV1ProgressHistoryGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getProgressHistoryApiV1ProgressHistoryGetResponse = (getProgressHistoryApiV1ProgressHistoryGetResponseSuccess)
-
-export const getGetProgressHistoryApiV1ProgressHistoryGetUrl = () => {
-
-
-
-
-  return `/api/v1/progress/history`
-}
-
 /**
  * Get the last 30 days of progress for calendar heatmaps.
  * @summary Get Progress History
  */
-export const getProgressHistoryApiV1ProgressHistoryGet = async ( options?: RequestInit): Promise<getProgressHistoryApiV1ProgressHistoryGetResponse> => {
+export const getProgressHistoryApiV1ProgressHistoryGet = (
 
-  return customInstance<getProgressHistoryApiV1ProgressHistoryGetResponse>(getGetProgressHistoryApiV1ProgressHistoryGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<DailyProgressResponse[]>(
+      {url: `/api/v1/progress/history`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -221,7 +181,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressHistoryApiV1ProgressHistoryGet>>> = ({ signal }) => getProgressHistoryApiV1ProgressHistoryGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressHistoryApiV1ProgressHistoryGet>>> = ({ signal }) => getProgressHistoryApiV1ProgressHistoryGet(requestOptions, signal);
 
 
 
@@ -279,41 +239,21 @@ export function useGetProgressHistoryApiV1ProgressHistoryGet<TData = Awaited<Ret
 
 
 
-export type getAchievementsApiV1ProgressAchievementsGetResponse200 = {
-  data: AchievementResponse[]
-  status: 200
-}
-
-export type getAchievementsApiV1ProgressAchievementsGetResponseSuccess = (getAchievementsApiV1ProgressAchievementsGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getAchievementsApiV1ProgressAchievementsGetResponse = (getAchievementsApiV1ProgressAchievementsGetResponseSuccess)
-
-export const getGetAchievementsApiV1ProgressAchievementsGetUrl = () => {
-
-
-
-
-  return `/api/v1/progress/achievements`
-}
-
 /**
  * Get all earned achievements for the user.
  * @summary Get Achievements
  */
-export const getAchievementsApiV1ProgressAchievementsGet = async ( options?: RequestInit): Promise<getAchievementsApiV1ProgressAchievementsGetResponse> => {
+export const getAchievementsApiV1ProgressAchievementsGet = (
 
-  return customInstance<getAchievementsApiV1ProgressAchievementsGetResponse>(getGetAchievementsApiV1ProgressAchievementsGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<AchievementResponse[]>(
+      {url: `/api/v1/progress/achievements`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -334,7 +274,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAchievementsApiV1ProgressAchievementsGet>>> = ({ signal }) => getAchievementsApiV1ProgressAchievementsGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAchievementsApiV1ProgressAchievementsGet>>> = ({ signal }) => getAchievementsApiV1ProgressAchievementsGet(requestOptions, signal);
 
 
 
@@ -392,49 +332,24 @@ export function useGetAchievementsApiV1ProgressAchievementsGet<TData = Awaited<R
 
 
 
-export type trackProgressApiV1ProgressTrackPostResponse200 = {
-  data: DailyProgressResponse
-  status: 200
-}
-
-export type trackProgressApiV1ProgressTrackPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type trackProgressApiV1ProgressTrackPostResponseSuccess = (trackProgressApiV1ProgressTrackPostResponse200) & {
-  headers: Headers;
-};
-export type trackProgressApiV1ProgressTrackPostResponseError = (trackProgressApiV1ProgressTrackPostResponse422) & {
-  headers: Headers;
-};
-
-export type trackProgressApiV1ProgressTrackPostResponse = (trackProgressApiV1ProgressTrackPostResponseSuccess | trackProgressApiV1ProgressTrackPostResponseError)
-
-export const getTrackProgressApiV1ProgressTrackPostUrl = () => {
-
-
-
-
-  return `/api/v1/progress/track`
-}
-
 /**
  * Manually track progress or mark a module as completed for today.
  * Note: Usually called by internal backend processes upon exercise submission.
  * @summary Track Progress
  */
-export const trackProgressApiV1ProgressTrackPost = async (trackProgressRequest: TrackProgressRequest, options?: RequestInit): Promise<trackProgressApiV1ProgressTrackPostResponse> => {
+export const trackProgressApiV1ProgressTrackPost = (
+    trackProgressRequest: TrackProgressRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<trackProgressApiV1ProgressTrackPostResponse>(getTrackProgressApiV1ProgressTrackPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(trackProgressRequest)
-  }
-);}
 
+      return customInstance<DailyProgressResponse>(
+      {url: `/api/v1/progress/track`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: trackProgressRequest, signal
+    },
+      options);
+    }
 
 
 

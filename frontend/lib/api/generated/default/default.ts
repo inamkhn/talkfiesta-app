@@ -41,41 +41,21 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type rootEndpointGetResponse200 = {
-  data: unknown
-  status: 200
-}
-
-export type rootEndpointGetResponseSuccess = (rootEndpointGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type rootEndpointGetResponse = (rootEndpointGetResponseSuccess)
-
-export const getRootEndpointGetUrl = () => {
-
-
-
-
-  return `/`
-}
-
 /**
  * Health check root path.
  * @summary Root Endpoint
  */
-export const rootEndpointGet = async ( options?: RequestInit): Promise<rootEndpointGetResponse> => {
+export const rootEndpointGet = (
 
-  return customInstance<rootEndpointGetResponse>(getRootEndpointGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<unknown>(
+      {url: `/`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -96,7 +76,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof rootEndpointGet>>> = ({ signal }) => rootEndpointGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof rootEndpointGet>>> = ({ signal }) => rootEndpointGet(requestOptions, signal);
 
 
 

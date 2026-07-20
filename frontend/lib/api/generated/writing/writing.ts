@@ -56,48 +56,21 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type getDailyPromptApiV1WritingPromptDayGetResponse200 = {
-  data: WritingPromptResponse
-  status: 200
-}
-
-export type getDailyPromptApiV1WritingPromptDayGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getDailyPromptApiV1WritingPromptDayGetResponseSuccess = (getDailyPromptApiV1WritingPromptDayGetResponse200) & {
-  headers: Headers;
-};
-export type getDailyPromptApiV1WritingPromptDayGetResponseError = (getDailyPromptApiV1WritingPromptDayGetResponse422) & {
-  headers: Headers;
-};
-
-export type getDailyPromptApiV1WritingPromptDayGetResponse = (getDailyPromptApiV1WritingPromptDayGetResponseSuccess | getDailyPromptApiV1WritingPromptDayGetResponseError)
-
-export const getGetDailyPromptApiV1WritingPromptDayGetUrl = (day: number,) => {
-
-
-
-
-  return `/api/v1/writing/prompt/${day}`
-}
-
 /**
  * Retrieve the writing prompt for the user's current cycle and requested day.
  * @summary Get Daily Prompt
  */
-export const getDailyPromptApiV1WritingPromptDayGet = async (day: number, options?: RequestInit): Promise<getDailyPromptApiV1WritingPromptDayGetResponse> => {
-
-  return customInstance<getDailyPromptApiV1WritingPromptDayGetResponse>(getGetDailyPromptApiV1WritingPromptDayGetUrl(day),
-  {
-    ...options,
-    method: 'GET'
+export const getDailyPromptApiV1WritingPromptDayGet = (
+    day: number,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<WritingPromptResponse>(
+      {url: `/api/v1/writing/prompt/${day}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -118,7 +91,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyPromptApiV1WritingPromptDayGet>>> = ({ signal }) => getDailyPromptApiV1WritingPromptDayGet(day, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyPromptApiV1WritingPromptDayGet>>> = ({ signal }) => getDailyPromptApiV1WritingPromptDayGet(day, requestOptions, signal);
 
 
 
@@ -176,49 +149,24 @@ export function useGetDailyPromptApiV1WritingPromptDayGet<TData = Awaited<Return
 
 
 
-export type saveWritingDraftApiV1WritingDraftSavePostResponse200 = {
-  data: DraftSaveResponse
-  status: 200
-}
-
-export type saveWritingDraftApiV1WritingDraftSavePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type saveWritingDraftApiV1WritingDraftSavePostResponseSuccess = (saveWritingDraftApiV1WritingDraftSavePostResponse200) & {
-  headers: Headers;
-};
-export type saveWritingDraftApiV1WritingDraftSavePostResponseError = (saveWritingDraftApiV1WritingDraftSavePostResponse422) & {
-  headers: Headers;
-};
-
-export type saveWritingDraftApiV1WritingDraftSavePostResponse = (saveWritingDraftApiV1WritingDraftSavePostResponseSuccess | saveWritingDraftApiV1WritingDraftSavePostResponseError)
-
-export const getSaveWritingDraftApiV1WritingDraftSavePostUrl = () => {
-
-
-
-
-  return `/api/v1/writing/draft/save`
-}
-
 /**
  * Lightweight, frequent auto-save endpoint to persist the user's text.
  * Does not trigger AI grading.
  * @summary Save Writing Draft
  */
-export const saveWritingDraftApiV1WritingDraftSavePost = async (draftSaveRequest: DraftSaveRequest, options?: RequestInit): Promise<saveWritingDraftApiV1WritingDraftSavePostResponse> => {
+export const saveWritingDraftApiV1WritingDraftSavePost = (
+    draftSaveRequest: DraftSaveRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<saveWritingDraftApiV1WritingDraftSavePostResponse>(getSaveWritingDraftApiV1WritingDraftSavePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(draftSaveRequest)
-  }
-);}
 
+      return customInstance<DraftSaveResponse>(
+      {url: `/api/v1/writing/draft/save`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: draftSaveRequest, signal
+    },
+      options);
+    }
 
 
 
@@ -267,48 +215,23 @@ export const useSaveWritingDraftApiV1WritingDraftSavePost = <TError = HTTPValida
       > => {
       return useMutation(getSaveWritingDraftApiV1WritingDraftSavePostMutationOptions(options), queryClient);
     }
-    export type submitWritingApiV1WritingSubmitPostResponse200 = {
-  data: WritingSubmissionResponse
-  status: 200
-}
-
-export type submitWritingApiV1WritingSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitWritingApiV1WritingSubmitPostResponseSuccess = (submitWritingApiV1WritingSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitWritingApiV1WritingSubmitPostResponseError = (submitWritingApiV1WritingSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitWritingApiV1WritingSubmitPostResponse = (submitWritingApiV1WritingSubmitPostResponseSuccess | submitWritingApiV1WritingSubmitPostResponseError)
-
-export const getSubmitWritingApiV1WritingSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/writing/submit`
-}
-
-/**
+    /**
  * Submit an essay for AI evaluation. Triggers the LangGraph pipeline asynchronously.
  * @summary Submit Writing
  */
-export const submitWritingApiV1WritingSubmitPost = async (submissionCreateRequest: SubmissionCreateRequest, options?: RequestInit): Promise<submitWritingApiV1WritingSubmitPostResponse> => {
+export const submitWritingApiV1WritingSubmitPost = (
+    submissionCreateRequest: SubmissionCreateRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitWritingApiV1WritingSubmitPostResponse>(getSubmitWritingApiV1WritingSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(submissionCreateRequest)
-  }
-);}
 
+      return customInstance<WritingSubmissionResponse>(
+      {url: `/api/v1/writing/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: submissionCreateRequest, signal
+    },
+      options);
+    }
 
 
 
@@ -357,48 +280,21 @@ export const useSubmitWritingApiV1WritingSubmitPost = <TError = HTTPValidationEr
       > => {
       return useMutation(getSubmitWritingApiV1WritingSubmitPostMutationOptions(options), queryClient);
     }
-    export type getSubmissionApiV1WritingSubmissionIdGetResponse200 = {
-  data: WritingSubmissionResponse
-  status: 200
-}
-
-export type getSubmissionApiV1WritingSubmissionIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getSubmissionApiV1WritingSubmissionIdGetResponseSuccess = (getSubmissionApiV1WritingSubmissionIdGetResponse200) & {
-  headers: Headers;
-};
-export type getSubmissionApiV1WritingSubmissionIdGetResponseError = (getSubmissionApiV1WritingSubmissionIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getSubmissionApiV1WritingSubmissionIdGetResponse = (getSubmissionApiV1WritingSubmissionIdGetResponseSuccess | getSubmissionApiV1WritingSubmissionIdGetResponseError)
-
-export const getGetSubmissionApiV1WritingSubmissionIdGetUrl = (id: string,) => {
-
-
-
-
-  return `/api/v1/writing/submission/${id}`
-}
-
-/**
+    /**
  * Retrieve the status and results of a specific writing submission.
  * @summary Get Submission
  */
-export const getSubmissionApiV1WritingSubmissionIdGet = async (id: string, options?: RequestInit): Promise<getSubmissionApiV1WritingSubmissionIdGetResponse> => {
-
-  return customInstance<getSubmissionApiV1WritingSubmissionIdGetResponse>(getGetSubmissionApiV1WritingSubmissionIdGetUrl(id),
-  {
-    ...options,
-    method: 'GET'
+export const getSubmissionApiV1WritingSubmissionIdGet = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<WritingSubmissionResponse>(
+      {url: `/api/v1/writing/submission/${id}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -419,7 +315,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubmissionApiV1WritingSubmissionIdGet>>> = ({ signal }) => getSubmissionApiV1WritingSubmissionIdGet(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubmissionApiV1WritingSubmissionIdGet>>> = ({ signal }) => getSubmissionApiV1WritingSubmissionIdGet(id, requestOptions, signal);
 
 
 
@@ -477,49 +373,24 @@ export function useGetSubmissionApiV1WritingSubmissionIdGet<TData = Awaited<Retu
 
 
 
-export type reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse200 = {
-  data: WritingSubmissionResponse
-  status: 200
-}
-
-export type reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type reviseSubmissionApiV1WritingSubmissionIdRevisePostResponseSuccess = (reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse200) & {
-  headers: Headers;
-};
-export type reviseSubmissionApiV1WritingSubmissionIdRevisePostResponseError = (reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse422) & {
-  headers: Headers;
-};
-
-export type reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse = (reviseSubmissionApiV1WritingSubmissionIdRevisePostResponseSuccess | reviseSubmissionApiV1WritingSubmissionIdRevisePostResponseError)
-
-export const getReviseSubmissionApiV1WritingSubmissionIdRevisePostUrl = (id: string,) => {
-
-
-
-
-  return `/api/v1/writing/submission/${id}/revise`
-}
-
 /**
  * Submit a revised version of an essay. Re-runs the evaluation pipeline.
  * @summary Revise Submission
  */
-export const reviseSubmissionApiV1WritingSubmissionIdRevisePost = async (id: string,
-    submissionReviseRequest: SubmissionReviseRequest, options?: RequestInit): Promise<reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse> => {
+export const reviseSubmissionApiV1WritingSubmissionIdRevisePost = (
+    id: string,
+    submissionReviseRequest: SubmissionReviseRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<reviseSubmissionApiV1WritingSubmissionIdRevisePostResponse>(getReviseSubmissionApiV1WritingSubmissionIdRevisePostUrl(id),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(submissionReviseRequest)
-  }
-);}
 
+      return customInstance<WritingSubmissionResponse>(
+      {url: `/api/v1/writing/submission/${id}/revise`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: submissionReviseRequest, signal
+    },
+      options);
+    }
 
 
 
@@ -568,41 +439,21 @@ export const useReviseSubmissionApiV1WritingSubmissionIdRevisePost = <TError = H
       > => {
       return useMutation(getReviseSubmissionApiV1WritingSubmissionIdRevisePostMutationOptions(options), queryClient);
     }
-    export type getPortfolioApiV1WritingPortfolioGetResponse200 = {
-  data: WritingPortfolioResponse
-  status: 200
-}
-
-export type getPortfolioApiV1WritingPortfolioGetResponseSuccess = (getPortfolioApiV1WritingPortfolioGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getPortfolioApiV1WritingPortfolioGetResponse = (getPortfolioApiV1WritingPortfolioGetResponseSuccess)
-
-export const getGetPortfolioApiV1WritingPortfolioGetUrl = () => {
-
-
-
-
-  return `/api/v1/writing/portfolio`
-}
-
-/**
+    /**
  * Fetch all completed/processing writing submissions for the authenticated user.
  * @summary Get Portfolio
  */
-export const getPortfolioApiV1WritingPortfolioGet = async ( options?: RequestInit): Promise<getPortfolioApiV1WritingPortfolioGetResponse> => {
+export const getPortfolioApiV1WritingPortfolioGet = (
 
-  return customInstance<getPortfolioApiV1WritingPortfolioGetResponse>(getGetPortfolioApiV1WritingPortfolioGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<WritingPortfolioResponse>(
+      {url: `/api/v1/writing/portfolio`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -623,7 +474,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortfolioApiV1WritingPortfolioGet>>> = ({ signal }) => getPortfolioApiV1WritingPortfolioGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPortfolioApiV1WritingPortfolioGet>>> = ({ signal }) => getPortfolioApiV1WritingPortfolioGet(requestOptions, signal);
 
 
 

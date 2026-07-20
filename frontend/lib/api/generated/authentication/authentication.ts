@@ -59,48 +59,23 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type registerApiV1AuthRegisterPostResponse201 = {
-  data: TokenResponse
-  status: 201
-}
-
-export type registerApiV1AuthRegisterPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type registerApiV1AuthRegisterPostResponseSuccess = (registerApiV1AuthRegisterPostResponse201) & {
-  headers: Headers;
-};
-export type registerApiV1AuthRegisterPostResponseError = (registerApiV1AuthRegisterPostResponse422) & {
-  headers: Headers;
-};
-
-export type registerApiV1AuthRegisterPostResponse = (registerApiV1AuthRegisterPostResponseSuccess | registerApiV1AuthRegisterPostResponseError)
-
-export const getRegisterApiV1AuthRegisterPostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/register`
-}
-
 /**
  * Register a new user with email and password.
  * @summary Register
  */
-export const registerApiV1AuthRegisterPost = async (userRegister: UserRegister, options?: RequestInit): Promise<registerApiV1AuthRegisterPostResponse> => {
+export const registerApiV1AuthRegisterPost = (
+    userRegister: UserRegister,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<registerApiV1AuthRegisterPostResponse>(getRegisterApiV1AuthRegisterPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(userRegister)
-  }
-);}
 
+      return customInstance<TokenResponse>(
+      {url: `/api/v1/auth/register`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: userRegister, signal
+    },
+      options);
+    }
 
 
 
@@ -149,40 +124,17 @@ export const useRegisterApiV1AuthRegisterPost = <TError = HTTPValidationError,
       > => {
       return useMutation(getRegisterApiV1AuthRegisterPostMutationOptions(options), queryClient);
     }
-    export type loginApiV1AuthLoginPostResponse200 = {
-  data: TokenResponse
-  status: 200
-}
-
-export type loginApiV1AuthLoginPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type loginApiV1AuthLoginPostResponseSuccess = (loginApiV1AuthLoginPostResponse200) & {
-  headers: Headers;
-};
-export type loginApiV1AuthLoginPostResponseError = (loginApiV1AuthLoginPostResponse422) & {
-  headers: Headers;
-};
-
-export type loginApiV1AuthLoginPostResponse = (loginApiV1AuthLoginPostResponseSuccess | loginApiV1AuthLoginPostResponseError)
-
-export const getLoginApiV1AuthLoginPostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/login`
-}
-
-/**
+    /**
  * OAuth2 compatible token login, retrieve access and refresh tokens.
  * Uses username field as email.
  * @summary Login
  */
-export const loginApiV1AuthLoginPost = async (bodyLoginApiV1AuthLoginPost: BodyLoginApiV1AuthLoginPost, options?: RequestInit): Promise<loginApiV1AuthLoginPostResponse> => {
-    const formUrlEncoded = new URLSearchParams();
+export const loginApiV1AuthLoginPost = (
+    bodyLoginApiV1AuthLoginPost: BodyLoginApiV1AuthLoginPost,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+
+      const formUrlEncoded = new URLSearchParams();
 if(bodyLoginApiV1AuthLoginPost.grant_type !== undefined && bodyLoginApiV1AuthLoginPost.grant_type !== null) {
  formUrlEncoded.append(`grant_type`, bodyLoginApiV1AuthLoginPost.grant_type);
  }
@@ -198,15 +150,13 @@ if(bodyLoginApiV1AuthLoginPost.client_secret !== undefined && bodyLoginApiV1Auth
  formUrlEncoded.append(`client_secret`, bodyLoginApiV1AuthLoginPost.client_secret);
  }
 
-  return customInstance<loginApiV1AuthLoginPostResponse>(getLoginApiV1AuthLoginPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...options?.headers },
-    body: formUrlEncoded
-  }
-);}
-
+      return customInstance<TokenResponse>(
+      {url: `/api/v1/auth/login`, method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded', },
+       data: formUrlEncoded, signal
+    },
+      options);
+    }
 
 
 
@@ -255,48 +205,23 @@ export const useLoginApiV1AuthLoginPost = <TError = HTTPValidationError,
       > => {
       return useMutation(getLoginApiV1AuthLoginPostMutationOptions(options), queryClient);
     }
-    export type loginGoogleApiV1AuthGooglePostResponse200 = {
-  data: TokenResponse
-  status: 200
-}
-
-export type loginGoogleApiV1AuthGooglePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type loginGoogleApiV1AuthGooglePostResponseSuccess = (loginGoogleApiV1AuthGooglePostResponse200) & {
-  headers: Headers;
-};
-export type loginGoogleApiV1AuthGooglePostResponseError = (loginGoogleApiV1AuthGooglePostResponse422) & {
-  headers: Headers;
-};
-
-export type loginGoogleApiV1AuthGooglePostResponse = (loginGoogleApiV1AuthGooglePostResponseSuccess | loginGoogleApiV1AuthGooglePostResponseError)
-
-export const getLoginGoogleApiV1AuthGooglePostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/google`
-}
-
-/**
+    /**
  * Google OAuth authentication callback. Verifies/creates user.
  * @summary Login Google
  */
-export const loginGoogleApiV1AuthGooglePost = async (googleOAuthCallback: GoogleOAuthCallback, options?: RequestInit): Promise<loginGoogleApiV1AuthGooglePostResponse> => {
+export const loginGoogleApiV1AuthGooglePost = (
+    googleOAuthCallback: GoogleOAuthCallback,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<loginGoogleApiV1AuthGooglePostResponse>(getLoginGoogleApiV1AuthGooglePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(googleOAuthCallback)
-  }
-);}
 
+      return customInstance<TokenResponse>(
+      {url: `/api/v1/auth/google`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: googleOAuthCallback, signal
+    },
+      options);
+    }
 
 
 
@@ -345,48 +270,23 @@ export const useLoginGoogleApiV1AuthGooglePost = <TError = HTTPValidationError,
       > => {
       return useMutation(getLoginGoogleApiV1AuthGooglePostMutationOptions(options), queryClient);
     }
-    export type refreshTokenApiV1AuthRefreshPostResponse200 = {
-  data: TokenResponse
-  status: 200
-}
-
-export type refreshTokenApiV1AuthRefreshPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type refreshTokenApiV1AuthRefreshPostResponseSuccess = (refreshTokenApiV1AuthRefreshPostResponse200) & {
-  headers: Headers;
-};
-export type refreshTokenApiV1AuthRefreshPostResponseError = (refreshTokenApiV1AuthRefreshPostResponse422) & {
-  headers: Headers;
-};
-
-export type refreshTokenApiV1AuthRefreshPostResponse = (refreshTokenApiV1AuthRefreshPostResponseSuccess | refreshTokenApiV1AuthRefreshPostResponseError)
-
-export const getRefreshTokenApiV1AuthRefreshPostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/refresh`
-}
-
-/**
+    /**
  * Refresh access and refresh tokens using a valid refresh token.
  * @summary Refresh Token
  */
-export const refreshTokenApiV1AuthRefreshPost = async (tokenRefreshRequest: TokenRefreshRequest, options?: RequestInit): Promise<refreshTokenApiV1AuthRefreshPostResponse> => {
+export const refreshTokenApiV1AuthRefreshPost = (
+    tokenRefreshRequest: TokenRefreshRequest,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<refreshTokenApiV1AuthRefreshPostResponse>(getRefreshTokenApiV1AuthRefreshPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(tokenRefreshRequest)
-  }
-);}
 
+      return customInstance<TokenResponse>(
+      {url: `/api/v1/auth/refresh`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: tokenRefreshRequest, signal
+    },
+      options);
+    }
 
 
 
@@ -411,11 +311,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
           return  refreshTokenApiV1AuthRefreshPost(data,requestOptions)
         }
 
-
-
-
-
-
   return  { mutationFn, ...mutationOptions }}
 
     export type RefreshTokenApiV1AuthRefreshPostMutationResult = NonNullable<Awaited<ReturnType<typeof refreshTokenApiV1AuthRefreshPost>>>
@@ -435,41 +330,21 @@ export const useRefreshTokenApiV1AuthRefreshPost = <TError = HTTPValidationError
       > => {
       return useMutation(getRefreshTokenApiV1AuthRefreshPostMutationOptions(options), queryClient);
     }
-    export type readCurrentUserApiV1AuthMeGetResponse200 = {
-  data: UserResponse
-  status: 200
-}
-
-export type readCurrentUserApiV1AuthMeGetResponseSuccess = (readCurrentUserApiV1AuthMeGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type readCurrentUserApiV1AuthMeGetResponse = (readCurrentUserApiV1AuthMeGetResponseSuccess)
-
-export const getReadCurrentUserApiV1AuthMeGetUrl = () => {
-
-
-
-
-  return `/api/v1/auth/me`
-}
-
-/**
+    /**
  * Retrieve user metadata for the currently authenticated session.
  * @summary Read Current User
  */
-export const readCurrentUserApiV1AuthMeGet = async ( options?: RequestInit): Promise<readCurrentUserApiV1AuthMeGetResponse> => {
+export const readCurrentUserApiV1AuthMeGet = (
 
-  return customInstance<readCurrentUserApiV1AuthMeGetResponse>(getReadCurrentUserApiV1AuthMeGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<UserResponse>(
+      {url: `/api/v1/auth/me`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -490,7 +365,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof readCurrentUserApiV1AuthMeGet>>> = ({ signal }) => readCurrentUserApiV1AuthMeGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readCurrentUserApiV1AuthMeGet>>> = ({ signal }) => readCurrentUserApiV1AuthMeGet(requestOptions, signal);
 
 
 
@@ -548,48 +423,23 @@ export function useReadCurrentUserApiV1AuthMeGet<TData = Awaited<ReturnType<type
 
 
 
-export type updateCurrentUserApiV1AuthMePutResponse200 = {
-  data: UserResponse
-  status: 200
-}
-
-export type updateCurrentUserApiV1AuthMePutResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type updateCurrentUserApiV1AuthMePutResponseSuccess = (updateCurrentUserApiV1AuthMePutResponse200) & {
-  headers: Headers;
-};
-export type updateCurrentUserApiV1AuthMePutResponseError = (updateCurrentUserApiV1AuthMePutResponse422) & {
-  headers: Headers;
-};
-
-export type updateCurrentUserApiV1AuthMePutResponse = (updateCurrentUserApiV1AuthMePutResponseSuccess | updateCurrentUserApiV1AuthMePutResponseError)
-
-export const getUpdateCurrentUserApiV1AuthMePutUrl = () => {
-
-
-
-
-  return `/api/v1/auth/me`
-}
-
 /**
  * Update details for the current user's profile.
  * @summary Update Current User
  */
-export const updateCurrentUserApiV1AuthMePut = async (userProfileUpdate: UserProfileUpdate, options?: RequestInit): Promise<updateCurrentUserApiV1AuthMePutResponse> => {
+export const updateCurrentUserApiV1AuthMePut = (
+    userProfileUpdate: UserProfileUpdate,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<updateCurrentUserApiV1AuthMePutResponse>(getUpdateCurrentUserApiV1AuthMePutUrl(),
-  {
-    ...options,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(userProfileUpdate)
-  }
-);}
 
+      return customInstance<UserResponse>(
+      {url: `/api/v1/auth/me`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: userProfileUpdate, signal
+    },
+      options);
+    }
 
 
 
@@ -638,48 +488,23 @@ export const useUpdateCurrentUserApiV1AuthMePut = <TError = HTTPValidationError,
       > => {
       return useMutation(getUpdateCurrentUserApiV1AuthMePutMutationOptions(options), queryClient);
     }
-    export type configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse200 = {
-  data: LearningProfileResponse
-  status: 200
-}
-
-export type configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponseSuccess = (configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse200) & {
-  headers: Headers;
-};
-export type configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponseError = (configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse422) & {
-  headers: Headers;
-};
-
-export type configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse = (configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponseSuccess | configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponseError)
-
-export const getConfigureLearningProfileApiV1AuthOnboardingLearningProfilePostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/onboarding/learning-profile`
-}
-
-/**
+    /**
  * Set up or update a user's CEFR level and learning goals.
  * @summary Configure Learning Profile
  */
-export const configureLearningProfileApiV1AuthOnboardingLearningProfilePost = async (learningProfileCreate: LearningProfileCreate, options?: RequestInit): Promise<configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse> => {
+export const configureLearningProfileApiV1AuthOnboardingLearningProfilePost = (
+    learningProfileCreate: LearningProfileCreate,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<configureLearningProfileApiV1AuthOnboardingLearningProfilePostResponse>(getConfigureLearningProfileApiV1AuthOnboardingLearningProfilePostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(learningProfileCreate)
-  }
-);}
 
+      return customInstance<LearningProfileResponse>(
+      {url: `/api/v1/auth/onboarding/learning-profile`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: learningProfileCreate, signal
+    },
+      options);
+    }
 
 
 
@@ -728,41 +553,21 @@ export const useConfigureLearningProfileApiV1AuthOnboardingLearningProfilePost =
       > => {
       return useMutation(getConfigureLearningProfileApiV1AuthOnboardingLearningProfilePostMutationOptions(options), queryClient);
     }
-    export type completeOnboardingApiV1AuthOnboardingCompletePostResponse200 = {
-  data: OnboardingCompleteResponse
-  status: 200
-}
-
-export type completeOnboardingApiV1AuthOnboardingCompletePostResponseSuccess = (completeOnboardingApiV1AuthOnboardingCompletePostResponse200) & {
-  headers: Headers;
-};
-;
-
-export type completeOnboardingApiV1AuthOnboardingCompletePostResponse = (completeOnboardingApiV1AuthOnboardingCompletePostResponseSuccess)
-
-export const getCompleteOnboardingApiV1AuthOnboardingCompletePostUrl = () => {
-
-
-
-
-  return `/api/v1/auth/onboarding/complete`
-}
-
-/**
+    /**
  * Finalize onboarding, marking the user's initial state configuration complete.
  * @summary Complete Onboarding
  */
-export const completeOnboardingApiV1AuthOnboardingCompletePost = async ( options?: RequestInit): Promise<completeOnboardingApiV1AuthOnboardingCompletePostResponse> => {
+export const completeOnboardingApiV1AuthOnboardingCompletePost = (
 
-  return customInstance<completeOnboardingApiV1AuthOnboardingCompletePostResponse>(getCompleteOnboardingApiV1AuthOnboardingCompletePostUrl(),
-  {
-    ...options,
-    method: 'POST'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<OnboardingCompleteResponse>(
+      {url: `/api/v1/auth/onboarding/complete`, method: 'POST', signal
+    },
+      options);
+    }
 
 
 

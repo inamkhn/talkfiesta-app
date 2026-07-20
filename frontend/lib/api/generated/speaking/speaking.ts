@@ -54,59 +54,24 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
-export type fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse200 = {
-  data: SpeakingExerciseResponse
-  status: 200
-}
-
-export type fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type fetchExerciseApiV1SpeakingExerciseCycleDayGetResponseSuccess = (fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse200) & {
-  headers: Headers;
-};
-export type fetchExerciseApiV1SpeakingExerciseCycleDayGetResponseError = (fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse422) & {
-  headers: Headers;
-};
-
-export type fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse = (fetchExerciseApiV1SpeakingExerciseCycleDayGetResponseSuccess | fetchExerciseApiV1SpeakingExerciseCycleDayGetResponseError)
-
-export const getFetchExerciseApiV1SpeakingExerciseCycleDayGetUrl = (cycle: number,
-    day: number,
-    params?: FetchExerciseApiV1SpeakingExerciseCycleDayGetParams,) => {
-  const normalizedParams = new URLSearchParams();
-
-  Object.entries(params || {}).forEach(([key, value]) => {
-
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
-
-  const stringifiedParams = normalizedParams.toString();
-
-  return stringifiedParams.length > 0 ? `/api/v1/speaking/exercise/${cycle}/${day}?${stringifiedParams}` : `/api/v1/speaking/exercise/${cycle}/${day}`
-}
-
 /**
  * Fetch the scripted exercise for a given cycle, day, and type.
  * @summary Fetch Exercise
  */
-export const fetchExerciseApiV1SpeakingExerciseCycleDayGet = async (cycle: number,
+export const fetchExerciseApiV1SpeakingExerciseCycleDayGet = (
+    cycle: number,
     day: number,
-    params?: FetchExerciseApiV1SpeakingExerciseCycleDayGetParams, options?: RequestInit): Promise<fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse> => {
-
-  return customInstance<fetchExerciseApiV1SpeakingExerciseCycleDayGetResponse>(getFetchExerciseApiV1SpeakingExerciseCycleDayGetUrl(cycle,day,params),
-  {
-    ...options,
-    method: 'GET'
+    params?: FetchExerciseApiV1SpeakingExerciseCycleDayGetParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<SpeakingExerciseResponse>(
+      {url: `/api/v1/speaking/exercise/${cycle}/${day}`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
 
 
 
@@ -131,7 +96,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof fetchExerciseApiV1SpeakingExerciseCycleDayGet>>> = ({ signal }) => fetchExerciseApiV1SpeakingExerciseCycleDayGet(cycle,day,params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof fetchExerciseApiV1SpeakingExerciseCycleDayGet>>> = ({ signal }) => fetchExerciseApiV1SpeakingExerciseCycleDayGet(cycle,day,params, requestOptions, signal);
 
 
 
@@ -197,48 +162,23 @@ export function useFetchExerciseApiV1SpeakingExerciseCycleDayGet<TData = Awaited
 
 
 
-export type submitAudioApiV1SpeakingSubmitPostResponse200 = {
-  data: SpeakingSubmissionResponse
-  status: 200
-}
-
-export type submitAudioApiV1SpeakingSubmitPostResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type submitAudioApiV1SpeakingSubmitPostResponseSuccess = (submitAudioApiV1SpeakingSubmitPostResponse200) & {
-  headers: Headers;
-};
-export type submitAudioApiV1SpeakingSubmitPostResponseError = (submitAudioApiV1SpeakingSubmitPostResponse422) & {
-  headers: Headers;
-};
-
-export type submitAudioApiV1SpeakingSubmitPostResponse = (submitAudioApiV1SpeakingSubmitPostResponseSuccess | submitAudioApiV1SpeakingSubmitPostResponseError)
-
-export const getSubmitAudioApiV1SpeakingSubmitPostUrl = () => {
-
-
-
-
-  return `/api/v1/speaking/submit`
-}
-
 /**
  * Upload recorded audio reference and trigger async evaluation (Flow A).
  * @summary Submit Audio
  */
-export const submitAudioApiV1SpeakingSubmitPost = async (speakingSubmissionCreate: SpeakingSubmissionCreate, options?: RequestInit): Promise<submitAudioApiV1SpeakingSubmitPostResponse> => {
+export const submitAudioApiV1SpeakingSubmitPost = (
+    speakingSubmissionCreate: SpeakingSubmissionCreate,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
-  return customInstance<submitAudioApiV1SpeakingSubmitPostResponse>(getSubmitAudioApiV1SpeakingSubmitPostUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(speakingSubmissionCreate)
-  }
-);}
 
+      return customInstance<SpeakingSubmissionResponse>(
+      {url: `/api/v1/speaking/submit`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: speakingSubmissionCreate, signal
+    },
+      options);
+    }
 
 
 
@@ -287,48 +227,21 @@ export const useSubmitAudioApiV1SpeakingSubmitPost = <TError = HTTPValidationErr
       > => {
       return useMutation(getSubmitAudioApiV1SpeakingSubmitPostMutationOptions(options), queryClient);
     }
-    export type getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse200 = {
-  data: SpeakingSubmissionResponse
-  status: 200
-}
-
-export type getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse422 = {
-  data: HTTPValidationError
-  status: 422
-}
-
-export type getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponseSuccess = (getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse200) & {
-  headers: Headers;
-};
-export type getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponseError = (getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse422) & {
-  headers: Headers;
-};
-
-export type getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse = (getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponseSuccess | getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponseError)
-
-export const getGetSubmissionStatusApiV1SpeakingSessionSubmissionIdGetUrl = (submissionId: string,) => {
-
-
-
-
-  return `/api/v1/speaking/session/${submissionId}`
-}
-
-/**
+    /**
  * Poll the status and results of a speaking submission.
  * @summary Get Submission Status
  */
-export const getSubmissionStatusApiV1SpeakingSessionSubmissionIdGet = async (submissionId: string, options?: RequestInit): Promise<getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse> => {
-
-  return customInstance<getSubmissionStatusApiV1SpeakingSessionSubmissionIdGetResponse>(getGetSubmissionStatusApiV1SpeakingSessionSubmissionIdGetUrl(submissionId),
-  {
-    ...options,
-    method: 'GET'
+export const getSubmissionStatusApiV1SpeakingSessionSubmissionIdGet = (
+    submissionId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<SpeakingSubmissionResponse>(
+      {url: `/api/v1/speaking/session/${submissionId}`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -349,7 +262,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubmissionStatusApiV1SpeakingSessionSubmissionIdGet>>> = ({ signal }) => getSubmissionStatusApiV1SpeakingSessionSubmissionIdGet(submissionId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubmissionStatusApiV1SpeakingSessionSubmissionIdGet>>> = ({ signal }) => getSubmissionStatusApiV1SpeakingSessionSubmissionIdGet(submissionId, requestOptions, signal);
 
 
 
@@ -407,41 +320,21 @@ export function useGetSubmissionStatusApiV1SpeakingSessionSubmissionIdGet<TData 
 
 
 
-export type getProgressApiV1SpeakingProgressGetResponse200 = {
-  data: SpeakingProgressResponse
-  status: 200
-}
-
-export type getProgressApiV1SpeakingProgressGetResponseSuccess = (getProgressApiV1SpeakingProgressGetResponse200) & {
-  headers: Headers;
-};
-;
-
-export type getProgressApiV1SpeakingProgressGetResponse = (getProgressApiV1SpeakingProgressGetResponseSuccess)
-
-export const getGetProgressApiV1SpeakingProgressGetUrl = () => {
-
-
-
-
-  return `/api/v1/speaking/progress`
-}
-
 /**
  * Get aggregated speaking progress metrics for the user.
  * @summary Get Progress
  */
-export const getProgressApiV1SpeakingProgressGet = async ( options?: RequestInit): Promise<getProgressApiV1SpeakingProgressGetResponse> => {
+export const getProgressApiV1SpeakingProgressGet = (
 
-  return customInstance<getProgressApiV1SpeakingProgressGetResponse>(getGetProgressApiV1SpeakingProgressGetUrl(),
-  {
-    ...options,
-    method: 'GET'
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
 
 
-  }
-);}
-
+      return customInstance<SpeakingProgressResponse>(
+      {url: `/api/v1/speaking/progress`, method: 'GET', signal
+    },
+      options);
+    }
 
 
 
@@ -462,7 +355,7 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressApiV1SpeakingProgressGet>>> = ({ signal }) => getProgressApiV1SpeakingProgressGet({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProgressApiV1SpeakingProgressGet>>> = ({ signal }) => getProgressApiV1SpeakingProgressGet(requestOptions, signal);
 
 
 
