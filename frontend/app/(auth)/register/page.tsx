@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { useRegisterApiV1AuthRegisterPost } from "@/lib/api/generated/authentication/authentication";
-import { useAuthStore } from "@/store/authStore";
+import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,10 +22,8 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-
-  const { mutate: register, isPending } = useRegisterApiV1AuthRegisterPost();
+  const { register: registerUser, isRegistering } = useAuth();
 
   const {
     register: formRegister,
@@ -39,18 +35,14 @@ export default function RegisterPage() {
 
   const onSubmit = (data: RegisterFormValues) => {
     setServerError(null);
-    register(
-      { data },
+    registerUser(
       {
-        onSuccess: (response) => {
-          // Store tokens in localStorage
-          localStorage.setItem("access_token", response.access_token);
-          if (response.refresh_token) {
-            localStorage.setItem("refresh_token", response.refresh_token);
-          }
-          // The AuthProvider will automatically pick up the token and fetch the user profile
-          router.push("/dashboard");
-        },
+        email: data.email,
+        password: data.password,
+        first_name: data.first_name,
+        last_name: data.last_name,
+      },
+      {
         onError: (error: any) => {
           const detail = error?.response?.data?.detail;
           if (Array.isArray(detail)) {
@@ -150,7 +142,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full"
-              isLoading={isPending}
+              isLoading={isRegistering}
             >
               Sign up
             </Button>

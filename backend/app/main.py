@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import APIRoute
 
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.middleware.error_handler import setup_error_handlers
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

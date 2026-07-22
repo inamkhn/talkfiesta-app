@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 
 // Ensure we are in the browser before accessing localStorage
 const isBrowser = typeof window !== 'undefined';
@@ -115,21 +115,5 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Custom mutator wrapper for Orval
-export const customInstance = <T>(config: AxiosRequestConfig, options?: AxiosRequestConfig): Promise<T> => {
-  const source = axios.CancelToken.source();
-  const promise = apiClient({
-    ...config,
-    ...options,
-    cancelToken: source.token,
-  }).then(({ data }) => data);
-
-  // @ts-ignore
-  promise.cancel = () => {
-    source.cancel('Query was cancelled');
-  };
-
-  return promise;
-};
 
 export default apiClient;

@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { useLoginApiV1AuthLoginPost } from "@/lib/api/generated/authentication/authentication";
+import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,10 +20,8 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
-
-  const { mutate: login, isPending } = useLoginApiV1AuthLoginPost();
+  const { login, isLoggingIn } = useAuth();
 
   const {
     register: formRegister,
@@ -38,23 +35,14 @@ export default function LoginPage() {
     setServerError(null);
     login(
       {
-        data: {
-          username: data.username,
-          password: data.password,
-          grant_type: "password",
-          scope: "",
-          client_id: "",
-          client_secret: "",
-        },
+        username: data.username,
+        password: data.password,
+        grant_type: "password",
+        scope: "",
+        client_id: "",
+        client_secret: "",
       },
       {
-        onSuccess: (response) => {
-          localStorage.setItem("access_token", response.access_token);
-          if (response.refresh_token) {
-            localStorage.setItem("refresh_token", response.refresh_token);
-          }
-          router.push("/dashboard");
-        },
         onError: (error: any) => {
           const detail = error?.response?.data?.detail;
           if (typeof detail === "string") {
@@ -63,7 +51,7 @@ export default function LoginPage() {
             setServerError("Invalid credentials. Please try again.");
           }
         },
-      },
+      }
     );
   };
 
@@ -147,7 +135,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <Button type="submit" className="w-full" isLoading={isPending}>
+            <Button type="submit" className="w-full" isLoading={isLoggingIn}>
               Sign in
             </Button>
           </div>
