@@ -7,7 +7,6 @@ from app.core.config import settings
 
 logger = logging.getLogger("app.services.deepgram")
 
-
 class DeepgramAPIError(Exception):
     """Exception raised when Deepgram API returns an error or fails."""
     pass
@@ -62,7 +61,7 @@ def _simulate_transcription(target_word: Optional[str]) -> str:
     Returns the target word exactly 80% of the time, and a slightly incorrect word 20% of the time.
     """
     if not target_word:
-        return "hello"
+        return "I think that handling pressure is a very important skill. In my previous job, I had to deal with tight deadlines every week. I stayed calm and prioritized my tasks to make sure everything was completed on time."
         
     target_word = target_word.strip()
     
