@@ -8,17 +8,17 @@ import {
 
 export const liveSpeakingApi = {
   startSession: async (data: LiveConversationSessionCreate): Promise<LiveConversationSessionTokenResponse> => {
-    const response = await apiClient.post("/live/session", data);
+    const response = await apiClient.post("/speaking/live/session", data);
     return response.data;
   },
 
   endSession: async (sessionId: string, data: LiveConversationSessionEnd): Promise<LiveConversationSessionResponse> => {
-    const response = await apiClient.post(`/live/session/${sessionId}/end`, data);
+    const response = await apiClient.post(`/speaking/live/session/${sessionId}/end`, data);
     return response.data;
   },
 
   getSession: async (sessionId: string): Promise<LiveConversationSessionResponse> => {
-    const response = await apiClient.get(`/live/session/${sessionId}`);
+    const response = await apiClient.get(`/speaking/live/session/${sessionId}`);
     return response.data;
   },
 };
