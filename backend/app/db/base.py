@@ -4,7 +4,7 @@ class Base(DeclarativeBase):
     pass
 
 # Import all models here so that Alembic can discover them through Base.metadata
-from app.db.models.user import User, UserLearningProfile
+from app.db.models.user import User, UserLearningProfile, RefreshToken
 from app.db.models.speaking import SpeakingExercise, SpeakingSubmission, LiveConversationSession
 from app.db.models.vocabulary import (
     VocabularyWord,

@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.db.models.writing import WritingPrompt, WritingSubmission, WritingSubmissionVersion
@@ -96,7 +97,16 @@ def save_draft(
             revision_count=1,
         )
         db.add(submission)
-        db.flush()  # Fetch submission.id
+        try:
+            db.flush()  # Fetch submission.id
+        except IntegrityError:
+            # Concurrent draft-save created the active submission first:
+            # fall back to updating the winner's draft version.
+            db.rollback()
+            existing = get_pending_submission_by_prompt(db, user_id, prompt_id)
+            if not existing:
+                raise
+            return save_draft(db, user_id, prompt_id, content)
 
         version = WritingSubmissionVersion(
             submission_id=submission.id,
@@ -164,7 +174,13 @@ def submit_writing_essay(
             submitted_at=datetime.now(timezone.utc),
         )
         db.add(submission)
-        db.flush()
+        try:
+            db.flush()
+        except IntegrityError:
+            # A concurrent request already promoted/created the active
+            # submission for this prompt (unique partial index).
+            db.rollback()
+            raise ValueError("An evaluation is already in progress for this prompt.")
 
         version = WritingSubmissionVersion(
             submission_id=submission.id,
@@ -194,6 +210,11 @@ def create_revision(
     if not submission:
         raise ValueError("Submission not found")
 
+    # Re-check status under the row lock: a concurrent revise request may
+    # have already moved this submission into PROCESSING.
+    if submission.status == SubmissionStatus.PROCESSING:
+        raise ValueError("Cannot revise a submission that is currently processing.")
+
     if submission.revision_count >= 4:
         raise ValueError("Maximum revision limit reached")
 
@@ -215,6 +236,27 @@ def create_revision(
     db.refresh(version)
 
     return submission, version
+
+
+def rollback_revision(
+    db: Session,
+    submission_id: uuid.UUID,
+    version_id: uuid.UUID,
+    prior_status: SubmissionStatus,
+) -> None:
+    """
+    Undo a revision whose evaluation task could not be dispatched: delete the
+    new version, decrement the revision counter, and restore the prior status.
+    """
+    submission = db.query(WritingSubmission).with_for_update().filter(WritingSubmission.id == submission_id).first()
+    if not submission:
+        return
+    version = db.query(WritingSubmissionVersion).filter(WritingSubmissionVersion.id == version_id).first()
+    if version:
+        db.delete(version)
+    submission.revision_count = max(1, submission.revision_count - 1)
+    submission.status = prior_status
+    db.commit()
 
 
 def update_evaluation_results(
@@ -273,9 +315,10 @@ def update_evaluation_results(
     return submission, version
 
 
-def get_user_portfolio(db: Session, user_id: uuid.UUID) -> List[WritingSubmission]:
+def get_user_portfolio(db: Session, user_id: uuid.UUID, limit: int = 20, offset: int = 0) -> List[WritingSubmission]:
     """
-    Fetch all completed (or failed/processing) writing submissions for a user.
+    Fetch completed (or failed/processing) writing submissions for a user,
+    newest first, paginated.
     """
     return (
         db.query(WritingSubmission)
@@ -285,5 +328,7 @@ def get_user_portfolio(db: Session, user_id: uuid.UUID) -> List[WritingSubmissio
         )
         .options(joinedload(WritingSubmission.versions))
         .order_by(WritingSubmission.submitted_at.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )

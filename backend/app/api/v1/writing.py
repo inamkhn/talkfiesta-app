@@ -1,15 +1,17 @@
 import uuid
-from typing import Any, List, Optional
-from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.crud import user as crud_user
 from app.crud import writing as crud_writing
 from app.db.models.user import User
+from app.db.models.writing import WritingSubmission
 from app.db.models.enums import SubmissionStatus
-from app.middleware.rate_limit import check_ai_rate_limit
+from app.middleware.rate_limit import check_ai_rate_limit, refund_ai_rate_limit
 from app.schemas.writing import (
     WritingPromptResponse,
     DraftSaveRequest,
@@ -21,7 +23,23 @@ from app.schemas.writing import (
 )
 from app.workers.writing_tasks import process_writing_submission
 
+logger = logging.getLogger("app.api.v1.writing")
+
 router = APIRouter()
+
+
+def _validate_content(content: str, label: str = "Content") -> None:
+    """Shared length validation for submissions and revisions."""
+    if len(content.strip()) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{label} must be at least 10 characters long.",
+        )
+    if len(content) > 10000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{label} is too long. Maximum allowed length is 10,000 characters.",
+        )
 
 
 @router.get("/prompt/{day}", response_model=WritingPromptResponse)
@@ -54,46 +72,38 @@ def save_writing_draft(
 ) -> Any:
     """
     Lightweight, frequent auto-save endpoint to persist the user's text.
-    Does not trigger AI grading.
+    Does not trigger AI grading. Content is written through to the database
+    so drafts survive restarts and cache evictions.
     """
-    from app.middleware.rate_limit import redis_client
-    
-    submission = crud_writing.get_pending_submission_by_prompt(db, current_user.id, draft_data.prompt_id)
-    
-    if not submission:
-        submission, version = crud_writing.save_draft(
-            db=db,
-            user_id=current_user.id,
-            prompt_id=draft_data.prompt_id,
-            content="",
+    prompt = crud_writing.get_prompt_by_id(db, prompt_id=draft_data.prompt_id)
+    if not prompt:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Writing prompt not found.",
         )
-        last_edited = version.created_at
-    else:
-        last_edited = datetime.now(timezone.utc)
-        
-    if redis_client:
-        redis_client.setex(f"draft:{submission.id}", 86400 * 7, draft_data.content)
-    else:
+
+    try:
         submission, version = crud_writing.save_draft(
             db=db,
             user_id=current_user.id,
             prompt_id=draft_data.prompt_id,
             content=draft_data.content,
         )
-        last_edited = version.created_at
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An evaluation is already in progress for this prompt.",
+        )
 
     return DraftSaveResponse(
         submission_id=submission.id,
         status=submission.status,
-        last_edited_at=last_edited,
+        last_edited_at=version.created_at,
     )
 
 
-@router.post(
-    "/submit",
-    response_model=WritingSubmissionResponse,
-    dependencies=[Depends(check_ai_rate_limit)],
-)
+@router.post("/submit", response_model=WritingSubmissionResponse)
 def submit_writing(
     submission_data: SubmissionCreateRequest,
     db: Session = Depends(deps.get_db),
@@ -102,17 +112,8 @@ def submit_writing(
     """
     Submit an essay for AI evaluation. Triggers the LangGraph pipeline asynchronously.
     """
-    # Validate content length
-    if len(submission_data.content.strip()) < 10:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Content must be at least 10 characters long.",
-        )
-    if len(submission_data.content) > 10000:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Content is too long. Maximum allowed length is 10,000 characters.",
-        )
+    # Validate BEFORE consuming AI quota
+    _validate_content(submission_data.content)
 
     # Verify prompt exists
     prompt = crud_writing.get_prompt_by_id(db, prompt_id=submission_data.prompt_id)
@@ -122,8 +123,8 @@ def submit_writing(
             detail="Writing prompt not found.",
         )
 
-    # Prevent double submissions for the same prompt while processing
-    from app.db.models.writing import WritingSubmission
+    # Fast-path rejection of double submissions (race-safe enforcement is
+    # handled by the unique partial index in crud.submit_writing_essay)
     existing_processing = db.query(WritingSubmission).filter(
         WritingSubmission.user_id == current_user.id,
         WritingSubmission.prompt_id == submission_data.prompt_id,
@@ -135,28 +136,46 @@ def submit_writing(
             detail="An evaluation is already in progress for this prompt.",
         )
 
+    # All validations passed: consume AI quota
+    check_ai_rate_limit(current_user)
+
     # Calculate actual word count server-side
     calculated_word_count = len(submission_data.content.strip().split())
 
     # Submit essay
-    submission, version = crud_writing.submit_writing_essay(
-        db=db,
-        user_id=current_user.id,
-        prompt_id=submission_data.prompt_id,
-        content=submission_data.content,
-        word_count=calculated_word_count,
-        time_spent_seconds=submission_data.time_spent_seconds,
-    )
+    try:
+        submission, version = crud_writing.submit_writing_essay(
+            db=db,
+            user_id=current_user.id,
+            prompt_id=submission_data.prompt_id,
+            content=submission_data.content,
+            word_count=calculated_word_count,
+            time_spent_seconds=submission_data.time_spent_seconds,
+        )
+    except ValueError as e:
+        refund_ai_rate_limit(str(current_user.id))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
-    # Trigger Celery task asynchronously and capture job ID
-    task = process_writing_submission.delay(str(submission.id), str(version.id))
+    # Trigger Celery task asynchronously and capture job ID. If the broker is
+    # unavailable, revert the submission to a PENDING draft instead of leaving
+    # it stuck in PROCESSING.
+    try:
+        task = process_writing_submission.delay(str(submission.id), str(version.id))
+    except Exception as e:
+        logger.error(f"Failed to dispatch writing evaluation task: {e}")
+        submission.status = SubmissionStatus.PENDING
+        db.commit()
+        refund_ai_rate_limit(str(current_user.id))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Evaluation service is temporarily unavailable. Your draft has been saved; please try again shortly.",
+        )
+
     submission.processing_job_id = task.id
     db.commit()
-
-    from app.middleware.rate_limit import redis_client
-    if redis_client:
-        redis_client.delete(f"draft:{submission.id}")
-
     db.refresh(submission)
 
     return submission
@@ -185,20 +204,10 @@ def get_submission(
             detail="You do not have permission to view this submission.",
         )
 
-    from app.middleware.rate_limit import redis_client
-    if submission.status == SubmissionStatus.PENDING and redis_client:
-        cached_draft = redis_client.get(f"draft:{submission.id}")
-        if cached_draft is not None and len(submission.versions) > 0:
-            submission.versions[0].text_content = cached_draft
-
     return submission
 
 
-@router.post(
-    "/submission/{id}/revise",
-    response_model=WritingSubmissionResponse,
-    dependencies=[Depends(check_ai_rate_limit)],
-)
+@router.post("/submission/{id}/revise", response_model=WritingSubmissionResponse)
 def revise_submission(
     id: uuid.UUID,
     revision_data: SubmissionReviseRequest,
@@ -227,17 +236,13 @@ def revise_submission(
             detail="Cannot revise a submission that is currently processing.",
         )
 
-    # Validate content length
-    if len(revision_data.content.strip()) < 10:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Revised content is too short. Minimum 10 characters required.",
-        )
-    if len(revision_data.content) > 10000:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Revised content is too long. Maximum allowed length is 10,000 characters.",
-        )
+    # Validate BEFORE consuming AI quota
+    _validate_content(revision_data.content, label="Revised content")
+
+    prior_status = submission.status
+
+    # All validations passed: consume AI quota
+    check_ai_rate_limit(current_user)
 
     # Calculate actual word count server-side
     calculated_word_count = len(revision_data.content.strip().split())
@@ -251,13 +256,27 @@ def revise_submission(
             time_spent_seconds=revision_data.time_spent_seconds,
         )
     except ValueError as e:
+        refund_ai_rate_limit(str(current_user.id))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
 
-    # Trigger Celery task asynchronously for the new revision and update job ID
-    task = process_writing_submission.delay(str(submission.id), str(version.id))
+    # Dispatch the evaluation task; on broker failure, fully roll back the
+    # revision (delete version, restore count/status) and refund quota.
+    try:
+        task = process_writing_submission.delay(str(submission.id), str(version.id))
+    except Exception as e:
+        logger.error(f"Failed to dispatch revision evaluation task: {e}")
+        crud_writing.rollback_revision(
+            db, submission_id=submission.id, version_id=version.id, prior_status=prior_status
+        )
+        refund_ai_rate_limit(str(current_user.id))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Evaluation service is temporarily unavailable. Please try again shortly.",
+        )
+
     submission.processing_job_id = task.id
     db.commit()
     db.refresh(submission)
@@ -267,11 +286,13 @@ def revise_submission(
 
 @router.get("/portfolio", response_model=WritingPortfolioResponse)
 def get_portfolio(
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Fetch all completed/processing writing submissions for the authenticated user.
+    Fetch completed/processing writing submissions for the authenticated user (paginated).
     """
-    submissions = crud_writing.get_user_portfolio(db, user_id=current_user.id)
+    submissions = crud_writing.get_user_portfolio(db, user_id=current_user.id, limit=limit, offset=offset)
     return WritingPortfolioResponse(submissions=submissions)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.db.models.user import User, UserLearningProfile
 from app.db.models.enums import OAuthProvider
-from app.schemas.auth import UserRegister, UserProfileUpdate, LearningProfileCreate, GoogleOAuthCallback
+from app.schemas.auth import UserRegister, UserProfileUpdate, LearningProfileCreate, GoogleUserInfo
 
 
 def get_user_by_id(db: Session, user_id: uuid.UUID) -> Optional[User]:
@@ -40,9 +40,9 @@ def create_user(db: Session, user_data: UserRegister) -> User:
     return user
 
 
-def create_oauth_user(db: Session, oauth_data: GoogleOAuthCallback) -> User:
+def create_oauth_user(db: Session, oauth_data: GoogleUserInfo) -> User:
     """
-    Create a new user with Google OAuth credentials.
+    Create a new user from server-verified Google OAuth identity.
     """
     user = User(
         email=oauth_data.email.lower().strip(),

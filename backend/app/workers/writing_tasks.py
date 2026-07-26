@@ -37,6 +37,14 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
             logger.error(f"Database records not found for submission_id={submission_id}, version_id={version_id}")
             return
 
+        # Idempotency guard: with acks_late a message can be redelivered after
+        # the work already finished; never reprocess a settled submission.
+        if submission.status != SubmissionStatus.PROCESSING:
+            logger.warning(
+                f"Skipping submission {submission_id}: status is {submission.status}, not PROCESSING"
+            )
+            return
+
         prompt = db.query(WritingPrompt).filter(WritingPrompt.id == submission.prompt_id).first()
         if not prompt:
             logger.error(f"Writing prompt not found for prompt_id={submission.prompt_id}")
@@ -60,7 +68,7 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
         final_state = feedback_graph.invoke(state_input)
         supervisor_report = final_state.get("supervisor_report", {})
 
-        # 3. Consolidate full feedback JSON
+        # 3. Consolidate full feedback JSON, flagging degraded (fallback) results
         full_feedback = {
             "grammar": final_state.get("grammar_report"),
             "structure": final_state.get("structure_report"),
@@ -68,6 +76,9 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
             "coherence": final_state.get("coherence_report"),
             "supervisor": supervisor_report,
         }
+        full_feedback["degraded"] = any(
+            isinstance(r, dict) and "error" in r for r in full_feedback.values()
+        )
 
         # 4. Handle revision comparison if this is version > 1
         fixed_issues = None
@@ -81,8 +92,10 @@ def process_writing_submission(submission_id: str, version_id: str) -> None:
                 .first()
             )
             if prev_version and prev_version.ai_feedback:
-                prev_issues = prev_version.ai_feedback.get("grammar", {}).get("issues", [])
-                curr_issues = full_feedback.get("grammar", {}).get("issues", [])
+                # Reports may be stored as JSON null when an agent produced no
+                # output; guard with `or {}` to avoid AttributeError on None.
+                prev_issues = (prev_version.ai_feedback.get("grammar") or {}).get("issues", [])
+                curr_issues = (full_feedback.get("grammar") or {}).get("issues", [])
 
                 try:
                     comp_state = revision_comparison_graph.invoke({

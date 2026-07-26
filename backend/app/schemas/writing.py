@@ -76,7 +76,7 @@ class WritingPromptResponse(BaseModel):
     prompt_text: str
     target_word_count: int
     time_limit_minutes: Optional[int] = None
-    focus_areas: Any = []
+    focus_areas: List[str] = []
     writing_tips: Optional[str] = None
     sample_outline: Optional[str] = None
     sensitivity_flagged: bool
@@ -101,13 +101,15 @@ class DraftSaveResponse(BaseModel):
 class SubmissionCreateRequest(BaseModel):
     prompt_id: uuid.UUID
     content: str
-    word_count: int
+    # Informational only; the server always recomputes the word count.
+    word_count: Optional[int] = None
     time_spent_seconds: Optional[int] = None
 
 
 class SubmissionReviseRequest(BaseModel):
     content: str
-    word_count: int
+    # Informational only; the server always recomputes the word count.
+    word_count: Optional[int] = None
     time_spent_seconds: Optional[int] = None
 
 

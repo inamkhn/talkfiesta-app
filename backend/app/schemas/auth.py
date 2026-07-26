@@ -19,6 +19,13 @@ class UserLogin(BaseModel):
 
 
 class GoogleOAuthCallback(BaseModel):
+    """Request body for Google sign-in: only the raw ID token is accepted.
+    Identity fields are extracted server-side after verifying the token."""
+    id_token: str
+
+
+class GoogleUserInfo(BaseModel):
+    """Internal, server-verified Google identity (built from ID token claims)."""
     email: EmailStr
     oauth_provider_id: str
     first_name: Optional[str] = None
@@ -34,6 +41,16 @@ class TokenResponse(BaseModel):
 
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str
+    all_sessions: bool = False
+
+
+class LogoutResponse(BaseModel):
+    detail: str
+    sessions_revoked: int
 
 
 class LearningProfileResponse(BaseModel):

@@ -86,10 +86,13 @@ def refund_ai_rate_limit(user_id: str) -> None:
             count = redis_client.decr(key)
             if count < 0:
                 redis_client.set(key, 0)
+            return
         except Exception as e:
-            logger.warning(f"Redis rate limit refund failed: {e}")
-    else:
-        record = ai_usage_registry.get(user_id)
-        if record and record["count"] > 0:
-            record["count"] -= 1
+            logger.warning(f"Redis rate limit refund failed: {e}. Refunding in-memory counter.")
+
+    # In-memory fallback (also used when Redis is configured but unreachable,
+    # since check_ai_rate_limit consumed from the in-memory registry then).
+    record = ai_usage_registry.get(user_id)
+    if record and record["count"] > 0:
+        record["count"] -= 1
 

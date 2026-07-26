@@ -42,6 +42,39 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class RefreshToken(Base):
+    """
+    Server-side record of an issued refresh token (identified by its JWT `jti`).
+    Enables rotation (each token is single-use) and revocation (logout,
+    reuse detection). The raw JWT itself is never stored.
+    """
+    __tablename__ = "refresh_tokens"
+
+    jti: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # jti of the token issued in exchange for this one (rotation chain)
+    replaced_by_jti: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), nullable=False
+    )
+
+    user = relationship("User", back_populates="refresh_tokens")
 
 
 class UserLearningProfile(Base):

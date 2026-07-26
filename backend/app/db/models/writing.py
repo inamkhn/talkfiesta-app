@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Integer, ForeignKey, Enum as SQLEnum, func, Text, DateTime, Boolean
+from sqlalchemy import String, Integer, ForeignKey, Enum as SQLEnum, func, Text, DateTime, Boolean, Index, text
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -62,6 +62,17 @@ class WritingPrompt(Base):
 
 class WritingSubmission(Base):
     __tablename__ = "writing_submissions"
+    __table_args__ = (
+        # Only one active (draft or processing) submission per user+prompt;
+        # closes the concurrent double-submit / duplicate-draft race.
+        Index(
+            "uq_writing_submissions_active",
+            "user_id",
+            "prompt_id",
+            unique=True,
+            postgresql_where=text("status IN ('PENDING', 'PROCESSING')"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -99,6 +110,7 @@ class WritingSubmission(Base):
         "WritingSubmissionVersion",
         back_populates="submission",
         cascade="all, delete-orphan",
+        order_by="WritingSubmissionVersion.version_number",
     )
 
 

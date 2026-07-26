@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Union
+from typing import Any, Tuple, Union
+import uuid
 from jose import jwt, JWTError
 import bcrypt
 
@@ -44,18 +45,21 @@ def create_access_token(
     return encoded_jwt
 
 
-def create_refresh_token(subject: Union[str, Any]) -> str:
+def create_refresh_token(subject: Union[str, Any]) -> Tuple[str, uuid.UUID, datetime]:
     """
     Generate a signed JWT refresh token with a longer lifespan.
+    Each token carries a unique `jti` so it can be tracked server-side
+    for rotation and revocation. Returns (token, jti, expires_at).
     """
+    jti = uuid.uuid4()
     expire = datetime.now(timezone.utc) + timedelta(
         days=settings.REFRESH_TOKEN_EXPIRE_DAYS
     )
-    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh", "jti": str(jti)}
     encoded_jwt = jwt.encode(
         to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
-    return encoded_jwt
+    return encoded_jwt, jti, expire
 
 
 def decode_token(token: str) -> dict:
