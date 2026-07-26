@@ -70,7 +70,7 @@ class MatchPair(BaseModel):
 
 
 class MatchSubmission(BaseModel):
-    pairs: List[MatchPair]
+    pairs: List[MatchPair] = Field(..., min_length=1, max_length=10)
 
 
 class MatchPairResult(BaseModel):
@@ -90,7 +90,7 @@ class ContextPair(BaseModel):
 
 
 class ContextSubmission(BaseModel):
-    submissions: List[ContextPair]
+    submissions: List[ContextPair] = Field(..., min_length=1, max_length=10)
 
 
 class ContextPairResult(BaseModel):
@@ -102,17 +102,19 @@ class ContextPairResult(BaseModel):
 class ContextResult(BaseModel):
     results: List[ContextPairResult]
     score: int  # Number of correct usages (out of 5)
+    degraded: bool = False  # True when AI grading was unavailable (sentences not evaluated)
 
 
 class PronunciationSubmission(BaseModel):
     word_id: uuid.UUID
-    audio_url: str  # URL to uploaded audio file
+    audio_url: str = Field(..., min_length=1, max_length=2048)  # URL to uploaded audio file
 
 
 class PronunciationResult(BaseModel):
     word_id: uuid.UUID
     score: int  # Pronunciation confidence score (0-100)
     tip: Optional[str] = None  # Phonic/mouth position suggestion if score is low
+    degraded: bool = False  # True when the score came from the dev simulation, not real STT
 
 
 # Session Finalization Schemas
@@ -165,11 +167,17 @@ class ReviewWordSubmit(BaseModel):
 
 
 class ReviewSubmission(BaseModel):
-    reviews: List[ReviewWordSubmit]
+    reviews: List[ReviewWordSubmit] = Field(..., min_length=1, max_length=50)
+
+
+class ReviewWordFailure(BaseModel):
+    user_vocab_id: uuid.UUID
+    reason: str
 
 
 class ReviewSubmissionResult(BaseModel):
     updated_words: List[WordMasteryUpdate]
+    failed: List[ReviewWordFailure] = []
 
 
 # Personalized Suggestions Schemas

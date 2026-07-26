@@ -113,12 +113,13 @@ def grade_context_sentences(word_sentence_pairs: list) -> dict:
         return response_data
     except Exception as exc:
         logger.error(f"Failed to grade context sentences using Gemini: {exc}")
-        # Graceful degradation: fallback if AI fails, mark everything as True with a warning feedback
+        # Graceful degradation: no free pass — mark sentences as ungraded (not correct)
+        # and flag the payload so the API can refund quota and inform the client.
         fallback_results = []
         for item in word_sentence_pairs:
             fallback_results.append({
                 "word_id": str(item["word_id"]),
-                "is_correct": True,
-                "feedback": "Grading failed due to temporary AI unavailability. Your sentence has been accepted.",
+                "is_correct": False,
+                "feedback": "Grading is temporarily unavailable, so this sentence was not evaluated. Please submit it again later.",
             })
-        return {"results": fallback_results}
+        return {"results": fallback_results, "degraded": True}

@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Tuple
-from sqlalchemy import func, or_
+from sqlalchemy import case, func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.db.models.vocabulary import (
@@ -66,11 +67,9 @@ def get_or_create_user_vocabulary(
 ) -> UserVocabulary:
     """
     Get the user's vocabulary progress record, or initialize a new one (learned).
+    Safe under concurrency: the (user_id, word_id) unique constraint is the
+    final arbiter; losers of an insert race re-fetch the winner's row.
     """
-    from app.db.models.user import User
-    # Lock the user record to serialize concurrent operations and prevent duplicate records
-    db.query(User).filter(User.id == user_id).with_for_update().first()
-
     uv = get_user_vocab_entry(db, user_id, word_id)
     if not uv:
         # First time learning the word, schedule the first review tomorrow (Day N + 1)
@@ -88,19 +87,31 @@ def get_or_create_user_vocabulary(
             learned_at=datetime.now(timezone.utc),
         )
         db.add(uv)
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            # Concurrent request created the record first; use theirs
+            db.rollback()
+            uv = get_user_vocab_entry(db, user_id, word_id)
+            if not uv:
+                raise
+            return uv
         db.refresh(uv)
     return uv
 
 
 def update_user_vocabulary_mastery(
-    db: Session, user_vocab_id: uuid.UUID, is_correct: bool
+    db: Session, user_id: uuid.UUID, user_vocab_id: uuid.UUID, is_correct: bool
 ) -> UserVocabulary:
     """
     Applies the spaced repetition scheduling logic when a review exercise is completed.
     Intervals: [1, 2, 4, 7, 14] days.
+    Only updates records owned by the given user.
     """
-    uv = db.query(UserVocabulary).filter(UserVocabulary.id == user_vocab_id).first()
+    uv = db.query(UserVocabulary).filter(
+        UserVocabulary.id == user_vocab_id,
+        UserVocabulary.user_id == user_id,
+    ).first()
     if not uv:
         raise ValueError("User vocabulary record not found")
         
@@ -132,13 +143,14 @@ def update_user_vocabulary_mastery(
     return uv
 
 
-def increment_word_practice_count(db: Session, user_id: uuid.UUID, word_id: uuid.UUID) -> UserVocabulary:
+def increment_word_practice_count(db: Session, user_id: uuid.UUID, word_id: uuid.UUID) -> Optional[UserVocabulary]:
     """
     Increment practice counters for words practiced in active daily sessions.
+    Uses a SQL-side increment to avoid lost updates under concurrency.
     """
     uv = get_user_vocab_entry(db, user_id, word_id)
     if uv:
-        uv.times_practiced += 1
+        uv.times_practiced = UserVocabulary.times_practiced + 1
         db.add(uv)
         db.commit()
         db.refresh(uv)
@@ -162,6 +174,26 @@ def get_review_queue(db: Session, user_id: uuid.UUID, limit: int = 10) -> List[U
         .order_by(UserVocabulary.mastery_level.asc(), UserVocabulary.next_review_date.asc())
         .limit(limit)
         .all()
+    )
+
+
+def get_recent_practice_session(
+    db: Session, user_id: uuid.UUID, day_number: int, within_seconds: int = 60
+) -> Optional[VocabularyPracticeSession]:
+    """
+    Find a practice session for the same user/day completed within the last
+    `within_seconds`. Used as an idempotency guard against duplicate POSTs.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=within_seconds)
+    return (
+        db.query(VocabularyPracticeSession)
+        .filter(
+            VocabularyPracticeSession.user_id == user_id,
+            VocabularyPracticeSession.day_number == day_number,
+            VocabularyPracticeSession.completed_at >= cutoff,
+        )
+        .order_by(VocabularyPracticeSession.completed_at.desc())
+        .first()
     )
 
 
@@ -266,10 +298,10 @@ def get_user_vocab_stats(db: Session, user_id: uuid.UUID) -> dict:
     
     stats_query = db.query(
         func.count(UserVocabulary.id).label("total_learned"),
-        func.sum(func.case([(UserVocabulary.status == VocabWordStatus.MASTERED, 1)], else_=0)).label("mastered_count"),
-        func.sum(func.case([(UserVocabulary.status == VocabWordStatus.LEARNING, 1)], else_=0)).label("learning_count"),
-        func.sum(func.case([(UserVocabulary.status == VocabWordStatus.REVIEWING, 1)], else_=0)).label("reviewing_count"),
-        func.sum(func.case([((UserVocabulary.next_review_date <= now) & (UserVocabulary.status != VocabWordStatus.MASTERED), 1)], else_=0)).label("review_due_count")
+        func.sum(case((UserVocabulary.status == VocabWordStatus.MASTERED, 1), else_=0)).label("mastered_count"),
+        func.sum(case((UserVocabulary.status == VocabWordStatus.LEARNING, 1), else_=0)).label("learning_count"),
+        func.sum(case((UserVocabulary.status == VocabWordStatus.REVIEWING, 1), else_=0)).label("reviewing_count"),
+        func.sum(case(((UserVocabulary.next_review_date <= now) & (UserVocabulary.status != VocabWordStatus.MASTERED), 1), else_=0)).label("review_due_count")
     ).filter(UserVocabulary.user_id == user_id).first()
     
     return {

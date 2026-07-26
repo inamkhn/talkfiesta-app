@@ -12,11 +12,15 @@ class DeepgramAPIError(Exception):
     pass
 
 
-def transcribe_audio(audio_url: str, target_word: Optional[str] = None) -> str:
+def transcribe_audio(
+    audio_url: str, target_word: Optional[str] = None, raise_on_failure: bool = False
+) -> str:
     """
     Transcribes audio from a URL using Deepgram REST API.
-    If DEEPGRAM_API_KEY is not configured or an error occurs, falls back to
-    a simulated transcription of the target word for dev testing.
+    If DEEPGRAM_API_KEY is not configured, falls back to a simulated
+    transcription of the target word for dev testing.
+    When raise_on_failure is True, real API errors raise DeepgramAPIError
+    instead of silently simulating (so callers can degrade explicitly).
     """
     api_key = settings.DEEPGRAM_API_KEY
     if not api_key:
@@ -51,6 +55,9 @@ def transcribe_audio(audio_url: str, target_word: Optional[str] = None) -> str:
             return transcript
             
     except Exception as e:
+        if raise_on_failure:
+            logger.error(f"Deepgram transcription failed: {e}.")
+            raise DeepgramAPIError(f"Deepgram transcription failed: {e}") from e
         logger.error(f"Deepgram transcription failed: {e}. Falling back to simulation.")
         return _simulate_transcription(target_word)
 

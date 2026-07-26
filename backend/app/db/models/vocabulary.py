@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Integer, ForeignKey, Enum as SQLEnum, func, Text, DateTime
+from sqlalchemy import String, Integer, ForeignKey, Enum as SQLEnum, func, Text, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -84,6 +84,9 @@ class VocabularyExerciseBank(Base):
 
 class UserVocabulary(Base):
     __tablename__ = "user_vocabulary"
+    __table_args__ = (
+        UniqueConstraint("user_id", "word_id", name="uq_user_vocabulary_user_word"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

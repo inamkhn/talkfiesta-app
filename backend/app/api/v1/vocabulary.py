@@ -1,17 +1,21 @@
+import logging
 import uuid
 from typing import Any, List, Dict, Optional
+from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.config import settings
 from app.crud import vocabulary as crud_vocab
 from app.crud import user as crud_user
 from app.db.models.user import User
 from app.db.models.enums import VocabWordStatus, SuggestionStatus
 from app.services import gemini_client, deepgram_client
+from app.services.deepgram_client import DeepgramAPIError
 import difflib
 import string
-from app.middleware.rate_limit import check_ai_rate_limit
+from app.middleware.rate_limit import check_ai_rate_limit, refund_ai_rate_limit
 from app.schemas.vocabulary import (
     DayWordsResponse,
     WordWithExerciseResponse,
@@ -34,11 +38,14 @@ from app.schemas.vocabulary import (
     ReviewQueueWord,
     ReviewSubmission,
     ReviewSubmissionResult,
+    ReviewWordFailure,
     PersonalSuggestionResponse,
     VocabBankResponse,
     UserVocabBankWord,
     VocabStatsResponse,
 )
+
+logger = logging.getLogger("app.api.v1.vocabulary")
 
 router = APIRouter()
 
@@ -157,7 +164,6 @@ def submit_context(
     submission: ContextSubmission,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
-    _rate_limit: None = Depends(check_ai_rate_limit),
 ) -> Any:
     """
     Grading for 'Use in Context' sentences. Evaluates all 5 sentences together using 1 batched Gemini call.
@@ -171,7 +177,8 @@ def submit_context(
     
     for pair in submission.submissions:
         word = word_dict.get(pair.word_id)
-        if not word:
+        if not word or str(pair.word_id) in word_map:
+            # Skip unknown word IDs and duplicate submissions for the same word
             continue
             
         word_map[str(pair.word_id)] = word
@@ -187,26 +194,53 @@ def submit_context(
     if not pairs_for_ai:
         return ContextResult(results=[], score=0)
         
+    # Consume AI quota only once validation confirms a Gemini call will actually happen
+    check_ai_rate_limit(current_user)
+    
     # Call batched Gemini grading service
     ai_response = gemini_client.grade_context_sentences(pairs_for_ai)
+    degraded = bool(ai_response.get("degraded", False))
+    if degraded:
+        # Nothing was actually graded; give the quota back
+        refund_ai_rate_limit(str(current_user.id))
     
     results = []
     correct_count = 0
+    graded_ids = set()
     
     for result in ai_response.get("results", []):
-        is_correct = result.get("is_correct", False)
+        if not isinstance(result, dict):
+            continue
+        raw_id = result.get("word_id")
+        # Only trust results that map back to a word we actually submitted
+        if not isinstance(raw_id, str) or raw_id not in word_map or raw_id in graded_ids:
+            continue
+        graded_ids.add(raw_id)
+        
+        is_correct = bool(result.get("is_correct", False))
         if is_correct:
             correct_count += 1
             
         results.append(
             ContextPairResult(
-                word_id=uuid.UUID(result["word_id"]),
+                word_id=uuid.UUID(raw_id),
                 is_correct=is_correct,
-                feedback=result["feedback"],
+                feedback=str(result.get("feedback", "")),
             )
         )
         
-    return ContextResult(results=results, score=correct_count)
+    # Any submitted pair the AI failed to return a grade for gets an explicit notice
+    for word_id_str in word_map:
+        if word_id_str not in graded_ids:
+            results.append(
+                ContextPairResult(
+                    word_id=uuid.UUID(word_id_str),
+                    is_correct=False,
+                    feedback="We couldn't grade this sentence this time. Please submit it again.",
+                )
+            )
+            
+    return ContextResult(results=results, score=correct_count, degraded=degraded)
 
 
 @router.post("/exercise/pronunciation/submit", response_model=PronunciationResult)
@@ -218,6 +252,14 @@ def submit_pronunciation(
     """
     Grade user pronunciation using Deepgram STT and string matching.
     """
+    # Basic sanity validation of the client-supplied URL before handing it to Deepgram
+    parsed = urlparse(submission.audio_url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="audio_url must be a valid http(s) URL",
+        )
+        
     word = crud_vocab.get_word_by_id(db, word_id=submission.word_id)
     if not word:
         raise HTTPException(
@@ -225,10 +267,22 @@ def submit_pronunciation(
             detail="Word not found",
         )
         
-    # Transcribe the audio
-    transcript = deepgram_client.transcribe_audio(
-        submission.audio_url, target_word=word.word
-    )
+    # Deepgram is a metered API: consume AI quota only after validations pass
+    check_ai_rate_limit(current_user)
+    
+    # Transcribe the audio. Simulation is only used when no API key is configured
+    # (dev mode); a real Deepgram failure must not silently award a fake score.
+    degraded = not settings.DEEPGRAM_API_KEY
+    try:
+        transcript = deepgram_client.transcribe_audio(
+            submission.audio_url, target_word=word.word, raise_on_failure=True
+        )
+    except DeepgramAPIError:
+        refund_ai_rate_limit(str(current_user.id))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Pronunciation scoring is temporarily unavailable. Please try again later.",
+        )
     
     # Normalize strings for comparison
     normalized_target = word.word.lower().strip().translate(str.maketrans("", "", string.punctuation))
@@ -256,6 +310,7 @@ def submit_pronunciation(
         word_id=submission.word_id,
         score=score,
         tip=tip,
+        degraded=degraded,
     )
 
 
@@ -268,6 +323,19 @@ def complete_practice_session(
     """
     Finalize daily practice scores, register newly learned words in user review records, and log the practice stats.
     """
+    # Idempotency guard: a duplicate POST (retry/double-click) within 60s returns
+    # the already-recorded session instead of double-counting practice stats.
+    recent = crud_vocab.get_recent_practice_session(
+        db, user_id=current_user.id, day_number=session_data.day_number
+    )
+    if recent:
+        return SessionCompleteResponse(
+            session_id=recent.id,
+            overall_score=recent.overall_score or 0,
+            completed_at=recent.completed_at,
+            mastery_updates=[],
+        )
+    
     # Calculate overall weighted score out of 100
     # Formula: (fill_blank + match + context) * 20 / 3 + pronunciation_score * 0.4
     exercise_score = (session_data.fill_blank_score + session_data.match_score + session_data.context_score) * 20 / 3
@@ -360,14 +428,18 @@ def submit_review_session(
     Process spaced-repetition grades, adapting intervals and mastery levels.
     """
     updated_words = []
+    failed: List[ReviewWordFailure] = []
     
     for item in submission.reviews:
         try:
-            previous_uv = db.query(crud_vocab.UserVocabulary).filter(crud_vocab.UserVocabulary.id == item.user_vocab_id).first()
+            previous_uv = db.query(crud_vocab.UserVocabulary).filter(
+                crud_vocab.UserVocabulary.id == item.user_vocab_id,
+                crud_vocab.UserVocabulary.user_id == current_user.id,
+            ).first()
             prev_level = previous_uv.mastery_level if previous_uv else 1
             
             uv = crud_vocab.update_user_vocabulary_mastery(
-                db, user_vocab_id=item.user_vocab_id, is_correct=item.is_correct
+                db, user_id=current_user.id, user_vocab_id=item.user_vocab_id, is_correct=item.is_correct
             )
             
             updated_words.append(
@@ -379,12 +451,15 @@ def submit_review_session(
                     next_review_date=uv.next_review_date,
                 )
             )
+        except ValueError:
+            # Record doesn't exist or isn't owned by this user
+            failed.append(ReviewWordFailure(user_vocab_id=item.user_vocab_id, reason="not_found"))
         except Exception as e:
-            import logging
-            logging.getLogger("app.api.v1.vocabulary").error(f"Failed to update review for user_vocab_id={item.user_vocab_id}: {e}", exc_info=True)
-            continue
+            logger.error(f"Failed to update review for user_vocab_id={item.user_vocab_id}: {e}", exc_info=True)
+            db.rollback()  # clear any aborted transaction so remaining items can proceed
+            failed.append(ReviewWordFailure(user_vocab_id=item.user_vocab_id, reason="internal_error"))
             
-    return ReviewSubmissionResult(updated_words=updated_words)
+    return ReviewSubmissionResult(updated_words=updated_words, failed=failed)
 
 
 @router.get("/personal-suggestions", response_model=List[PersonalSuggestionResponse])
