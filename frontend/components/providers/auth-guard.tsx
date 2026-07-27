@@ -4,6 +4,16 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 
+// Deny-by-default: only the public marketing/auth pages are reachable without a
+// session. Route groups like (dashboard)/(onboarding) do NOT appear in URLs, so
+// /speaking, /vocabulary, /writing, /progress, /profile, /goal-selection and
+// /level-assessment are all protected app routes — a prefix check on
+// "/dashboard" or "/onboarding" would miss every one of them.
+const PUBLIC_PATHS = ["/", "/login", "/register"];
+
+export const isProtectedPath = (pathname: string | null | undefined): boolean =>
+  !!pathname && !PUBLIC_PATHS.includes(pathname);
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -12,11 +22,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // We do a simple client-side check since we are using localStorage for MVP.
     // In a production app with SSR, we would use httpOnly cookies and Next.js middleware.
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && isProtectedPath(pathname)) {
       // Redirect to login if trying to access a protected route
-      if (pathname?.startsWith("/dashboard") || pathname?.startsWith("/onboarding")) {
-        router.push("/login");
-      }
+      router.push("/login");
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
@@ -35,7 +43,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // If not authenticated and trying to access protected route, render nothing (will redirect)
-  if (!isAuthenticated && (pathname?.startsWith("/dashboard") || pathname?.startsWith("/onboarding"))) {
+  if (!isAuthenticated && isProtectedPath(pathname)) {
     return null;
   }
 

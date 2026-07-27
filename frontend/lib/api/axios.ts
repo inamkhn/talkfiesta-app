@@ -24,6 +24,15 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Auth endpoints must never trigger the token-refresh flow:
+// - /auth/login 401 = wrong credentials, not an expired session. Refreshing here
+//   swallows the error (full-page redirect) and, if a stale/revoked refresh token
+//   is present, replaying it makes the backend revoke ALL of the user's sessions.
+// - /auth/refresh & /auth/logout handle their own token semantics.
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout', '/auth/google'];
+const isAuthEndpoint = (url?: string) =>
+  !!url && AUTH_ENDPOINTS.some((path) => url.includes(path));
+
 // Prevent multiple simultaneous refresh requests
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: any) => void }> = [];
@@ -45,8 +54,13 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If it's a 401 Unauthorized and we haven't already retried this request
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // If it's a 401 Unauthorized on a non-auth endpoint and we haven't already retried
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint(originalRequest.url)
+    ) {
       
       if (isRefreshing) {
         // If we are already refreshing, queue this request to wait

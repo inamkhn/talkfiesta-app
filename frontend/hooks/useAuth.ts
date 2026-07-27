@@ -1,10 +1,16 @@
 import { useAuthStore } from "@/store/authStore";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/axios";
 import { useRouter } from "next/navigation";
 
+interface TokenPair {
+  access_token: string;
+  refresh_token?: string;
+}
+
 export function useAuth() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, isAuthenticated, isLoading, logout: storeLogout } = useAuthStore();
 
   const loginMutation = useMutation({
@@ -27,15 +33,42 @@ export function useAuth() {
     }
   });
 
+  // Persist tokens, then hydrate the auth store BEFORE navigating so AuthGuard
+  // never sees isAuthenticated=false on a protected route mid-login (which
+  // would bounce a freshly logged-in user straight back to /login).
+  const completeAuthentication = async (tokens: TokenPair) => {
+    localStorage.setItem("access_token", tokens.access_token);
+    if (tokens.refresh_token) {
+      localStorage.setItem("refresh_token", tokens.refresh_token);
+    }
+
+    const { setUser, setLearningProfile, setLoading } = useAuthStore.getState();
+    setLoading(true); // guard shows the spinner instead of redirecting
+    // New users go to onboarding first; returning users land on the dashboard.
+    let destination = "/dashboard";
+    try {
+      const me = await apiClient.get("/auth/me");
+      setUser(me.data);
+      setLearningProfile(me.data.learning_profile || null);
+      // Seed the cache so AuthProvider doesn't refetch/flash on mount
+      queryClient.setQueryData(["currentUser"], me.data);
+      if (!me.data.onboarding_completed) {
+        destination = "/goal-selection";
+      }
+    } catch {
+      // Tokens are stored; keep isLoading=true and let AuthProvider's
+      // /auth/me query settle the session (success -> setUser, failure ->
+      // logged out). Either way the guard resolves without a race.
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    }
+    router.push(destination);
+  };
+
   const login = (data: any, options?: { onSuccess?: () => void; onError?: (error: any) => void }) => {
     loginMutation.mutate(data, {
-      onSuccess: (response) => {
-        localStorage.setItem("access_token", response.access_token);
-        if (response.refresh_token) {
-          localStorage.setItem("refresh_token", response.refresh_token);
-        }
+      onSuccess: async (response) => {
         options?.onSuccess?.();
-        router.push("/dashboard");
+        await completeAuthentication(response);
       },
       onError: (err) => {
         options?.onError?.(err);
@@ -45,13 +78,9 @@ export function useAuth() {
 
   const register = (data: any, options?: { onSuccess?: () => void; onError?: (error: any) => void }) => {
     registerMutation.mutate(data, {
-      onSuccess: (response) => {
-        localStorage.setItem("access_token", response.access_token);
-        if (response.refresh_token) {
-          localStorage.setItem("refresh_token", response.refresh_token);
-        }
+      onSuccess: async (response) => {
         options?.onSuccess?.();
-        router.push("/dashboard");
+        await completeAuthentication(response);
       },
       onError: (err) => {
         options?.onError?.(err);
@@ -59,8 +88,21 @@ export function useAuth() {
     });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Revoke the refresh token server-side BEFORE wiping local storage —
+    // otherwise it stays valid for its full lifetime after "logout".
+    const refreshToken =
+      typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
+    if (refreshToken) {
+      try {
+        await apiClient.post("/auth/logout", { refresh_token: refreshToken });
+      } catch {
+        // Best-effort: revocation failure (offline, expired) must not block local logout.
+      }
+    }
     storeLogout();
+    // Drop every cached query so the next account never sees this user's data.
+    queryClient.clear();
     router.push("/login");
   };
 

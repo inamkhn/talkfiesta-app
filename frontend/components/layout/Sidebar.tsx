@@ -12,6 +12,7 @@ import {
   LogOut
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -24,7 +25,10 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
+  // useAuth().logout revokes the refresh token server-side and clears the
+  // query cache — the raw store logout only wipes local state.
+  const { logout } = useAuth();
 
   return (
     <aside className="w-64 h-screen bg-neutral-950 border-r border-neutral-900 flex-col hidden md:flex sticky top-0 shrink-0">
