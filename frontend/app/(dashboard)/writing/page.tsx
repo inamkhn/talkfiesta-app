@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { useDailyPrompt, useWritingPortfolio, useSubmission } from "@/hooks/useWriting";
+import { useDailyPrompt, useWritingPortfolio, useSubmission, useWritingDraft } from "@/hooks/useWriting";
 import { WritingWorkspace } from "@/components/writing/WritingWorkspace";
 import { WritingPortfolio } from "@/components/writing/WritingPortfolio";
 import { WritingFeedback } from "@/components/writing/WritingFeedback";
@@ -18,6 +18,7 @@ export default function WritingPage() {
 
   const { data: dailyPrompt, isLoading: isLoadingPrompt } = useDailyPrompt(currentDay);
   const { data: portfolioData, isLoading: isLoadingPortfolio } = useWritingPortfolio();
+  const { data: savedDraft, isLoading: isLoadingDraft } = useWritingDraft(dailyPrompt?.id);
   const { data: selectedSubmission, isLoading: isLoadingSubmission } = useSubmission(selectedSubmissionId || "");
 
   const handleSubmissionComplete = (submissionId: string) => {
@@ -72,7 +73,7 @@ export default function WritingPage() {
       <div className="min-h-[500px]">
         {activeTab === "practice" && (
           <>
-            {isLoadingPrompt || isLoadingPortfolio ? (
+            {isLoadingPrompt || isLoadingDraft ? (
               <div className="flex justify-center items-center h-64">
                 <Loader2 className="animate-spin text-blue-500" size={32} />
               </div>
@@ -80,11 +81,7 @@ export default function WritingPage() {
               <WritingWorkspace 
                 key={dailyPrompt.id}
                 prompt={dailyPrompt} 
-                initialContent={
-                  portfolioData?.submissions.find(
-                    (s) => s.prompt_id === dailyPrompt.id && s.status === "PENDING"
-                  )?.versions[0]?.text_content || ""
-                }
+                initialContent={savedDraft?.content || ""}
                 onSubmissionComplete={handleSubmissionComplete}
               />
             ) : (

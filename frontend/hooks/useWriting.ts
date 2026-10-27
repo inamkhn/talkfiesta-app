@@ -9,6 +9,7 @@ import {
 export const writingKeys = {
   all: ["writing"] as const,
   dailyPrompt: (day: number) => [...writingKeys.all, "prompt", day] as const,
+  draft: (promptId: string) => [...writingKeys.all, "draft", promptId] as const,
   submission: (id: string) => [...writingKeys.all, "submission", id] as const,
   portfolio: () => [...writingKeys.all, "portfolio"] as const,
 };
@@ -21,9 +22,22 @@ export const useDailyPrompt = (day: number) => {
   });
 };
 
+export const useWritingDraft = (promptId: string | undefined) => {
+  return useQuery({
+    queryKey: writingKeys.draft(promptId || ""),
+    queryFn: () => writingApi.getDraft(promptId!),
+    enabled: !!promptId,
+  });
+};
+
 export const useSaveDraft = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: DraftSaveRequest) => writingApi.saveDraft(data),
+    onSuccess: (_data, variables) => {
+      // Keep the restorable draft in sync with what was just persisted.
+      queryClient.invalidateQueries({ queryKey: writingKeys.draft(variables.prompt_id) });
+    },
   });
 };
 
@@ -34,6 +48,8 @@ export const useSubmitWriting = () => {
     onSuccess: (data) => {
       queryClient.setQueryData(writingKeys.submission(data.id), data);
       queryClient.invalidateQueries({ queryKey: writingKeys.portfolio() });
+      // The draft was promoted to a PROCESSING submission; drop the stale copy.
+      queryClient.invalidateQueries({ queryKey: writingKeys.draft(data.prompt_id) });
     },
   });
 };

@@ -33,6 +33,20 @@ export function useAuth() {
     }
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (email: string) => {
+      // Always answers 202, whether or not the address has an account.
+      const response = await apiClient.post("/auth/password/forgot", { email });
+      return response.data as { detail: string };
+    }
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { token: string; new_password: string }) => {
+      await apiClient.post("/auth/password/reset", data);
+    }
+  });
+
   // Persist tokens, then hydrate the auth store BEFORE navigating so AuthGuard
   // never sees isAuthenticated=false on a protected route mid-login (which
   // would bounce a freshly logged-in user straight back to /login).
@@ -106,6 +120,29 @@ export function useAuth() {
     router.push("/login");
   };
 
+  const requestPasswordReset = (
+    email: string,
+    options?: {
+      onSuccess?: (data: { detail: string }) => void;
+      onError?: (error: any) => void;
+    }
+  ) => {
+    forgotPasswordMutation.mutate(email, {
+      onSuccess: (data) => options?.onSuccess?.(data),
+      onError: (err) => options?.onError?.(err),
+    });
+  };
+
+  const resetPassword = (
+    data: { token: string; new_password: string },
+    options?: { onSuccess?: () => void; onError?: (error: any) => void }
+  ) => {
+    resetPasswordMutation.mutate(data, {
+      onSuccess: () => options?.onSuccess?.(),
+      onError: (err) => options?.onError?.(err),
+    });
+  };
+
   return {
     user,
     isAuthenticated,
@@ -117,5 +154,9 @@ export function useAuth() {
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error,
     logout,
+    requestPasswordReset,
+    isRequestingReset: forgotPasswordMutation.isPending,
+    resetPassword,
+    isResettingPassword: resetPasswordMutation.isPending,
   };
 }

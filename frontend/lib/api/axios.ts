@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { isProtectedPath } from '@/lib/routes';
 
 // Ensure we are in the browser before accessing localStorage
 const isBrowser = typeof window !== 'undefined';
@@ -113,11 +114,15 @@ apiClient.interceptors.response.use(
         processQueue(refreshError, null);
         
         // If refreshing the token completely fails (e.g., refresh token expired)
-        // We log the user out and redirect to login
+        // we drop the stale session. Only force a redirect when the user is on
+        // a protected page — yanking a visitor off a public page (landing,
+        // login) because a background query hit a dead session is jarring.
         if (isBrowser) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          window.location.href = '/login';
+          if (isProtectedPath(window.location.pathname)) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(refreshError);
       } finally {

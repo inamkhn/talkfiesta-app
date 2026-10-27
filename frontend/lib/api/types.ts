@@ -16,6 +16,8 @@ export type CEFRLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
 export type OAuthProvider = "GOOGLE";
 
+export type UserRole = "LEARNER" | "REVIEWER" | "ADMIN";
+
 // ----------------------------------------------------------------------
 // User & Auth Types
 // ----------------------------------------------------------------------
@@ -26,10 +28,10 @@ export interface UserResponse {
   first_name?: string | null;
   last_name?: string | null;
   is_active: boolean;
-  is_superuser: boolean;
+  role: UserRole;
   oauth_provider?: OAuthProvider | null;
-  oauth_provider_id?: string | null;
   avatar_url?: string | null;
+  email_verified_at?: string | null;
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
@@ -42,7 +44,9 @@ export interface LearningProfileResponse {
   user_id: string;
   current_cycle: number;
   current_day: number;
+  cycle_started_at: string;
   goal: Goal;
+  placement_cefr_level?: CEFRLevel | null;
   target_cefr_level: CEFRLevel;
   native_language?: string | null;
   timezone: string;
@@ -238,6 +242,14 @@ export interface DraftSaveRequest {
 export interface DraftSaveResponse {
   submission_id: string;
   status: SubmissionStatus;
+  last_edited_at: string;
+}
+
+/** A saved-but-unsubmitted draft, used to restore the editor content. */
+export interface WritingDraftResponse {
+  submission_id: string;
+  prompt_id: string;
+  content: string;
   last_edited_at: string;
 }
 

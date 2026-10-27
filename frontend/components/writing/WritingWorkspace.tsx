@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { WritingPromptResponse } from "@/lib/api/types";
 import { useSaveDraft, useSubmitWriting } from "@/hooks/useWriting";
 import { Clock, Info, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
@@ -12,6 +12,12 @@ interface WritingWorkspaceProps {
   initialContent?: string;
 }
 
+/** Pull the backend's error `detail` out of an axios error, if usable. */
+const getErrorDetail = (err: unknown): string => {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  return typeof detail === "string" ? detail : "Failed to submit your essay. Please try again.";
+};
+
 export function WritingWorkspace({ prompt, onSubmissionComplete, initialContent = "" }: WritingWorkspaceProps) {
   const [content, setContent] = useState(initialContent);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(
@@ -19,32 +25,60 @@ export function WritingWorkspace({ prompt, onSubmissionComplete, initialContent 
   );
   
   const saveDraftMutation = useSaveDraft();
+  // `mutate` is referentially stable in react-query; the mutation result
+  // object is NOT (new identity every render) and must stay out of effect deps.
+  const { mutate: saveDraft } = saveDraftMutation;
   const submitMutation = useSubmitWriting();
   
   // Track save status
   const [saveStatus, setSaveStatus] = useState<"IDLE" | "SAVING" | "SAVED">("IDLE");
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Refs let the debounce/unmount effects read the latest values without
+  // re-arming on every render (re-arming on the mutation object previously
+  // caused an endless save loop: save → status re-render → new timer → save…).
+  const lastSavedContentRef = useRef(initialContent);
+  const contentRef = useRef(content);
+  contentRef.current = content;
 
   // Word count logic
   const wordCount = content.trim() ? content.trim().split(/\s+/).filter(Boolean).length : 0;
   const isTargetMet = wordCount >= prompt.target_word_count;
 
-  // Auto-save logic (debounce)
+  // Auto-save logic (debounce). Only re-arms when the text actually changes,
+  // and skips content that is already persisted.
   useEffect(() => {
-    if (!content) return;
+    if (!content || content === lastSavedContentRef.current) return;
     
     const timeout = setTimeout(() => {
       setSaveStatus("SAVING");
-      saveDraftMutation.mutate(
+      saveDraft(
         { prompt_id: prompt.id, content },
         {
-          onSuccess: () => setSaveStatus("SAVED"),
+          onSuccess: () => {
+            lastSavedContentRef.current = content;
+            setSaveStatus("SAVED");
+          },
           onError: () => setSaveStatus("IDLE"),
         }
       );
     }, 3000); // 3 second debounce
 
     return () => clearTimeout(timeout);
-  }, [content, prompt.id, saveDraftMutation]);
+  }, [content, prompt.id, saveDraft]);
+
+  // Flush unsaved text when the workspace unmounts (tab switch / navigation)
+  // so nothing typed within the debounce window is lost. Skipped when the
+  // essay was just submitted — the draft no longer exists server-side.
+  useEffect(() => {
+    return () => {
+      const latest = contentRef.current;
+      if (latest && latest !== lastSavedContentRef.current) {
+        saveDraft({ prompt_id: prompt.id, content: latest });
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Timer logic
   useEffect(() => {
@@ -64,11 +98,23 @@ export function WritingWorkspace({ prompt, onSubmissionComplete, initialContent 
   };
 
   const handleSubmit = () => {
+    // Mirror the backend's validation so obvious rejections never hit the API.
+    if (content.trim().length < 10) {
+      setSubmitError("Your essay must be at least 10 characters long.");
+      return;
+    }
+    if (content.length > 10000) {
+      setSubmitError("Your essay is too long. Maximum allowed length is 10,000 characters.");
+      return;
+    }
+
     if (!isTargetMet) {
       if (!confirm(`You haven't reached the target word count (${prompt.target_word_count} words). Are you sure you want to submit?`)) {
         return;
       }
     }
+
+    setSubmitError(null);
     
     // Calculate time spent if there was a timer
     let time_spent_seconds = null;
@@ -85,8 +131,12 @@ export function WritingWorkspace({ prompt, onSubmissionComplete, initialContent 
       },
       {
         onSuccess: (data) => {
+          // Prevent the unmount flush from re-saving a just-submitted essay
+          // (its draft was promoted to PROCESSING server-side).
+          lastSavedContentRef.current = content;
           onSubmissionComplete(data.id);
         },
+        onError: (error) => setSubmitError(getErrorDetail(error)),
       }
     );
   };
@@ -181,9 +231,20 @@ export function WritingWorkspace({ prompt, onSubmissionComplete, initialContent 
           className="flex-1 w-full bg-neutral-950 border border-neutral-800 p-6 text-neutral-200 placeholder:text-neutral-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50 resize-none font-medium leading-relaxed"
           placeholder="Start writing your response here..."
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => {
+            setContent(e.target.value);
+            if (submitError) setSubmitError(null);
+          }}
           spellCheck={false} // Disable to simulate exam environment (often disabled)
         />
+
+        {/* Submit error banner */}
+        {submitError && (
+          <div className="flex items-center bg-rose-950/40 border border-t-0 border-rose-900/50 px-6 py-3 text-sm text-rose-300">
+            <AlertCircle size={14} className="mr-2 shrink-0" />
+            {submitError}
+          </div>
+        )}
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between bg-neutral-900 border border-t-0 border-neutral-800 rounded-b-2xl px-6 py-4">

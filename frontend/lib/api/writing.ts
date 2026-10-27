@@ -3,6 +3,7 @@ import {
   WritingPromptResponse,
   DraftSaveRequest,
   DraftSaveResponse,
+  WritingDraftResponse,
   SubmissionCreateRequest,
   WritingSubmissionResponse,
   SubmissionReviseRequest,
@@ -18,6 +19,11 @@ export const writingApi = {
   saveDraft: async (data: DraftSaveRequest): Promise<DraftSaveResponse> => {
     const response = await apiClient.post("/writing/draft/save", data);
     return response.data;
+  },
+
+  getDraft: async (promptId: string): Promise<WritingDraftResponse | null> => {
+    const response = await apiClient.get(`/writing/draft/${promptId}`);
+    return response.data ?? null;
   },
 
   submitWriting: async (data: SubmissionCreateRequest): Promise<WritingSubmissionResponse> => {

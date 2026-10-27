@@ -3,16 +3,12 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-
 // Deny-by-default: only the public marketing/auth pages are reachable without a
 // session. Route groups like (dashboard)/(onboarding) do NOT appear in URLs, so
 // /speaking, /vocabulary, /writing, /progress, /profile, /goal-selection and
 // /level-assessment are all protected app routes — a prefix check on
 // "/dashboard" or "/onboarding" would miss every one of them.
-const PUBLIC_PATHS = ["/", "/login", "/register"];
-
-export const isProtectedPath = (pathname: string | null | undefined): boolean =>
-  !!pathname && !PUBLIC_PATHS.includes(pathname);
+import { isProtectedPath } from "@/lib/routes";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
