@@ -64,6 +64,14 @@ class NotFoundError(AppError):
     title = "Not Found"
 
 
+class ServiceUnavailableError(AppError):
+    """A required external service is not configured or temporarily unavailable."""
+
+    status_code = 503
+    code = "SERVICE_UNAVAILABLE"
+    title = "Service Unavailable"
+
+
 class ConflictError(AppError):
     """The request conflicts with current server state."""
 
@@ -79,7 +87,9 @@ class RateLimitedError(AppError):
     code = "RATE_LIMITED"
     title = "Too Many Requests"
 
-    def __init__(self, detail: str, *, retry_after: int, code: str | None = None) -> None:
+    def __init__(
+        self, detail: str, *, retry_after: int, code: str | None = None
+    ) -> None:
         super().__init__(
             detail, code=code, headers={"Retry-After": str(max(retry_after, 1))}
         )

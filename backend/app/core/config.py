@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     environment: str = "local"
     debug: bool = False
 
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/talkfiesta"
+    database_url: str = (
+        "postgresql+psycopg://postgres:postgres@localhost:5432/talkfiesta"
+    )
     database_echo: bool = False
 
     redis_url: str = "redis://localhost:6379/0"
@@ -40,6 +42,20 @@ class Settings(BaseSettings):
     refresh_cookie_secure: bool = True
     register_rate_limit_per_ip_per_hour: int = 10
     login_rate_limit_per_ip_per_hour: int = 10
+    auth_action_rate_limit_per_ip_per_hour: int = 10
+    password_reset_ttl_minutes: int = 30
+    email_verification_ttl_minutes: int = 1440
+    password_reset_url: str = "http://localhost:3000/reset-password"
+    email_verification_url: str = "http://localhost:3000/verify-email"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_starttls: bool = True
+    smtp_ssl: bool = False
+    smtp_timeout_seconds: int = 10
+    google_client_id: str = ""
 
 
 @lru_cache

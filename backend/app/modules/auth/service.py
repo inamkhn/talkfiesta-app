@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +24,7 @@ from app.core.security import (
     refresh_token_expiry,
     verify_password,
 )
+from app.infrastructure.google_identity import GoogleIdentity
 from app.modules.auth.models import AuthSession, User
 from app.modules.auth.repository import AuthRepository
 from app.modules.auth.schemas import LoginRequest, RegisterRequest, UserSummary
@@ -56,6 +57,169 @@ class AuthService:
     ) -> None:
         self._session = session
         self._repository = repository or AuthRepository(session)
+
+    async def google_exchange(
+        self,
+        identity: GoogleIdentity,
+        *,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> RegisteredAccount:
+        """Sign in by Google's stable subject; never auto-link by matching email."""
+        user = await self._repository.get_user_by_google_subject(identity.subject)
+        if user is None:
+            if await self._repository.get_user_by_email(identity.email) is not None:
+                raise ConflictError(
+                    "Sign in using your existing account method.",
+                    code="ACCOUNT_LINK_REQUIRED",
+                )
+            user = User(
+                id=uuid.uuid4(),
+                email=identity.email,
+                google_sub=identity.subject,
+                display_name=identity.name,
+                role=DEFAULT_ROLE,
+                email_verified_at=datetime.now(UTC)
+                if identity.authoritative_email
+                else None,
+            )
+            self._repository.add_user(user)
+            try:
+                # Flush before issuing tokens; unique indexes arbitrate races
+                # between simultaneous first-time exchanges.
+                await self._session.flush()
+            except IntegrityError:
+                await self._session.rollback()
+                user = await self._repository.get_user_by_google_subject(
+                    identity.subject
+                )
+                if user is None:
+                    if (
+                        await self._repository.get_user_by_email(identity.email)
+                        is not None
+                    ):
+                        raise ConflictError(
+                            "Sign in using your existing account method.",
+                            code="ACCOUNT_LINK_REQUIRED",
+                        ) from None
+                    raise
+        if not user.is_active:
+            raise ForbiddenError(ACCOUNT_INACTIVE, code="ACCOUNT_INACTIVE")
+        refresh_token, jti = new_refresh_token()
+        row = AuthSession(
+            user_id=user.id,
+            jti=jti,
+            token_hash=hash_refresh_token(refresh_token),
+            family_id=uuid.uuid4(),
+            user_agent=(user_agent or None) and user_agent[:255],
+            ip_address=ip_address,
+            expires_at=refresh_token_expiry(),
+        )
+        self._repository.add_session(row)
+        access_token, expires_in = create_access_token(
+            user_id=user.id,
+            role=user.role,
+            token_version=user.token_version,
+        )
+        await self._session.commit()
+        return RegisteredAccount(
+            user=UserSummary(
+                id=user.id,
+                email=user.email,
+                first_name=user.display_name,
+                roles=[user.role],
+                onboarding_completed=user.onboarding_completed,
+            ),
+            access_token=access_token,
+            expires_in=expires_in,
+            refresh_token=refresh_token,
+            refresh_expires_at=row.expires_at,
+        )
+
+    async def logout(self, token: str | None) -> None:
+        """Idempotently revoke only the session identified by the refresh cookie."""
+        if not token or len(token) > 512:
+            return
+        token_hash = hash_refresh_token(token)
+        # Use the same lock order as refresh so session updates are serialized.
+        if await self._repository.lock_refresh_owner(token_hash) is None:
+            return
+        current = await self._repository.get_session_by_token_hash(token_hash)
+        if current is not None and current.revoked_at is None:
+            current.revoked_at = datetime.now(UTC)
+            current.revoked_reason = "LOGOUT"
+        await self._session.commit()
+
+    async def refresh(
+        self,
+        token: str | None,
+        *,
+        user_agent: str | None = None,
+        ip_address: str | None = None,
+    ) -> RegisteredAccount:
+        """Rotate once; commit family revocation before rejecting a replay.
+
+        Lock the owner before reading session state so replay of an ancestor
+        cannot race with rotation of its descendant on PostgreSQL.
+        """
+        invalid = UnauthorizedError(
+            "The refresh token is invalid or has expired.", code="INVALID_REFRESH_TOKEN"
+        )
+        if not token or len(token) > 512:
+            raise invalid
+        token_hash = hash_refresh_token(token)
+        user = await self._repository.lock_refresh_owner(token_hash)
+        if user is None:
+            raise invalid
+        current = await self._repository.get_session_by_token_hash(token_hash)
+        if current is None:
+            raise invalid
+        now = datetime.now(UTC)
+        if current.revoked_at is not None:
+            await self._repository.revoke_family(current.family_id, now)
+            await self._session.commit()
+            raise invalid
+        # SQLite test storage drops timezone information; PostgreSQL retains it.
+        expiry = current.expires_at
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=UTC)
+        if expiry <= now:
+            raise invalid
+        if not user.is_active:
+            raise ForbiddenError(ACCOUNT_INACTIVE, code="ACCOUNT_INACTIVE")
+        refresh_token, jti = new_refresh_token()
+        successor = AuthSession(
+            user_id=user.id,
+            jti=jti,
+            token_hash=hash_refresh_token(refresh_token),
+            family_id=current.family_id,
+            rotated_from_id=current.id,
+            user_agent=(user_agent or None) and user_agent[:255],
+            ip_address=ip_address,
+            expires_at=refresh_token_expiry(now),
+        )
+        current.revoked_at = now
+        current.revoked_reason = "ROTATED"
+        self._repository.add_session(successor)
+        access_token, expires_in = create_access_token(
+            user_id=user.id,
+            role=user.role,
+            token_version=user.token_version,
+        )
+        await self._session.commit()
+        return RegisteredAccount(
+            user=UserSummary(
+                id=user.id,
+                email=user.email,
+                first_name=user.display_name,
+                roles=[user.role],
+                onboarding_completed=user.onboarding_completed,
+            ),
+            access_token=access_token,
+            expires_in=expires_in,
+            refresh_token=refresh_token,
+            refresh_expires_at=successor.expires_at,
+        )
 
     async def register(
         self,
@@ -132,7 +296,10 @@ class AuthService:
     ) -> RegisteredAccount:
         """Verify email/password and start a new refresh-token session family."""
 
-        user = await self._repository.get_user_by_email(str(payload.email).lower())
+        # Serialize password verification/session creation with password reset.
+        user = await self._repository.get_user_by_email(
+            str(payload.email).lower(), for_update=True
+        )
 
         # Unknown email and Google-only accounts (no password) cost the same as a
         # real verification and return the same error, so neither the response

@@ -83,3 +83,28 @@ class RegisterResponse(BaseModel):
 
 class LoginResponse(RegisterResponse):
     """``200 OK`` body; the refresh token travels in an HttpOnly cookie."""
+
+
+class EmailActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailStr
+
+
+class ActionTokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    token: str = Field(min_length=1, max_length=4096)
+
+
+class ResetPasswordRequest(ActionTokenRequest):
+    new_password: str = Field(
+        min_length=PASSWORD_MIN_LENGTH, max_length=PASSWORD_MAX_LENGTH
+    )
+
+
+class GoogleExchangeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id_token: str = Field(min_length=1, max_length=8192)
+
+
+class MessageResponse(BaseModel):
+    message: str

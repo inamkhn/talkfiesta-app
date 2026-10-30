@@ -25,6 +25,62 @@ _CREATED_USER_LOCATION = "/api/v1/users/me"
 
 
 @router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    summary="Revoke the current refresh session and clear its cookie",
+)
+async def logout(request: Request, db: DbSession) -> Response:
+    """Log out even when the access token has expired or the cookie is absent."""
+    await AuthService(db).logout(request.cookies.get(settings.refresh_cookie_name))
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    response.delete_cookie(
+        key=settings.refresh_cookie_name,
+        path=settings.refresh_cookie_path,
+        httponly=True,
+        secure=settings.refresh_cookie_secure,
+        samesite="lax",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@router.post(
+    "/refresh",
+    response_model=LoginResponse,
+    summary="Rotate the refresh cookie and issue a new access token",
+    responses={
+        401: {
+            "description": "INVALID_REFRESH_TOKEN: missing, expired or revoked token"
+        },
+        403: {"description": "ACCOUNT_INACTIVE: the account is disabled"},
+    },
+)
+async def refresh(request: Request, response: Response, db: DbSession) -> LoginResponse:
+    account = await AuthService(db).refresh(
+        request.cookies.get(settings.refresh_cookie_name),
+        user_agent=request.headers.get("user-agent"),
+        ip_address=request.client.host if request.client else None,
+    )
+    response.set_cookie(
+        key=settings.refresh_cookie_name,
+        value=account.refresh_token,
+        max_age=settings.refresh_token_ttl_days * 86_400,
+        path=settings.refresh_cookie_path,
+        httponly=True,
+        secure=settings.refresh_cookie_secure,
+        samesite="lax",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Pragma"] = "no-cache"
+    return LoginResponse(
+        access_token=account.access_token,
+        expires_in=account.expires_in,
+        user=account.user,
+    )
+
+
+@router.post(
     "/register",
     status_code=status.HTTP_201_CREATED,
     response_model=RegisterResponse,

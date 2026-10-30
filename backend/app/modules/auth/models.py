@@ -36,9 +36,7 @@ class User(Base):
 
     __tablename__ = "users"
     __table_args__ = (
-        CheckConstraint(
-            "role IN ('LEARNER','CONTENT_REVIEWER','ADMIN')", name="role"
-        ),
+        CheckConstraint("role IN ('LEARNER','CONTENT_REVIEWER','ADMIN')", name="role"),
         CheckConstraint(
             "onboarding_status IN ('NOT_STARTED','PREFERENCES_SAVED','ASSESSING','RESULT_READY','COMPLETED')",
             name="onboarding_status",
@@ -153,7 +151,9 @@ class AuthSession(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
