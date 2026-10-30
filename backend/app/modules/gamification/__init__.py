@@ -1,0 +1,2 @@
+"""Gamification and achievements module."""
+

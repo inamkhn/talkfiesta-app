@@ -1,0 +1,2 @@
+"""Content bank module."""
+

@@ -27,6 +27,19 @@ class Settings(BaseSettings):
     database_echo: bool = False
 
     redis_url: str = "redis://localhost:6379/0"
+    rate_limit_enabled: bool = True
+
+    # Auth. The secret must be injected per environment; the default only keeps
+    # local development runnable and is rejected outside the local environment.
+    jwt_secret_key: str = "local-development-secret-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_ttl_minutes: int = 15
+    refresh_token_ttl_days: int = 30
+    refresh_cookie_name: str = "tf_refresh"
+    refresh_cookie_path: str = "/api/v1/auth"
+    refresh_cookie_secure: bool = True
+    register_rate_limit_per_ip_per_hour: int = 10
+    login_rate_limit_per_ip_per_hour: int = 10
 
 
 @lru_cache

@@ -1,4 +1,4 @@
-"""Assessment question bank, attempts, items, responses and results."""
+"""Assessment attempts and assigned/answered assessment responses (V4)."""
 
 from __future__ import annotations
 
@@ -6,66 +6,41 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    JSON,
-    Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
     Integer,
+    SmallInteger,
     String,
-    Text,
     UniqueConstraint,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.base import Base
 
-# Statuses that keep an initial attempt 'active' for the partial unique index.
 _ACTIVE_ATTEMPT_STATUSES = (
-    "'CREATED','IN_PROGRESS','SUBMITTED','PROCESSING','FAILED_RETRYABLE'"
+    "'IN_PROGRESS','SUBMITTED','PROCESSING','FAILED_RETRYABLE'"
 )
 
 
-class AssessmentQuestion(Base):
-    """A question in the versioned assessment bank.
-
-    The correct answer is stored inline (``correct_choice_id``); questions are
-    treated as immutable once published so learner-visible payloads stay
-    stable.
-    """
-
-    __tablename__ = "assessment_questions"
-    __table_args__ = (
-        UniqueConstraint(
-            "version", "position", name="uq_assessment_question_version_position"
-        ),
-    )
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    version: Mapped[str] = mapped_column(
-        String(40), nullable=False, default="starter-v1"
-    )
-    position: Mapped[int] = mapped_column(Integer, nullable=False)
-    kind: Mapped[str] = mapped_column(String(30), nullable=False)
-    skill: Mapped[str] = mapped_column(String(20), nullable=False)
-    level: Mapped[str] = mapped_column(String(2), nullable=False)
-    prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    choices: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    correct_choice_id: Mapped[str | None] = mapped_column(String(5), nullable=True)
-    published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-
-
 class AssessmentAttempt(Base):
-    """One learner sitting of the assessment."""
+    """One learner sitting of the assessment, including its provisional CEFR result."""
 
     __tablename__ = "assessment_attempts"
     __table_args__ = (
-        Index("ix_assessment_attempts_user_id", "user_id"),
+        CheckConstraint(
+            "kind IN ('INITIAL','REASSESSMENT')",
+            name="valid_attempt_kind",
+        ),
+        CheckConstraint(
+            "status IN ('IN_PROGRESS','SUBMITTED','PROCESSING','COMPLETED','FAILED_RETRYABLE','FAILED_FINAL')",
+            name="valid_attempt_status",
+        ),
+        Index("ix_assessment_attempts_user_started", "user_id", "started_at"),
         Index(
             "uq_active_initial_attempt",
             "user_id",
@@ -86,97 +61,76 @@ class AssessmentAttempt(Base):
     status: Mapped[str] = mapped_column(
         String(30), nullable=False, default="IN_PROGRESS"
     )
-    question_bank_version: Mapped[str] = mapped_column(
-        String(40), nullable=False, default="starter-v1"
+    content_release: Mapped[str] = mapped_column(
+        String(60), nullable=False, default="starter-v1"
     )
+    result: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    placement_cefr: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    confidence: Mapped[str | None] = mapped_column(String(10), nullable=True)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     submitted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-
-
-class AssessmentItem(Base):
-    """A question assigned at a specific position within an attempt."""
-
-    __tablename__ = "assessment_items"
-    __table_args__ = (
-        UniqueConstraint("attempt_id", "position", name="uq_attempt_item_position"),
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    attempt_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("assessment_attempts.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    question_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("assessment_questions.id"), nullable=False
-    )
-    position: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class AssessmentResponse(Base):
-    """Autosaved answer for one assigned item.
+    """An assigned question slot and the learner's response within an attempt.
 
-    ``version`` supports idempotent autosave; ``media_upload_id`` links a
-    spoken answer to the uploaded recording.
+    An ``ASSIGNED`` row is created when the question is selected, removing the
+    need for a separate ``assessment_items`` join table.
     """
 
     __tablename__ = "assessment_responses"
     __table_args__ = (
-        UniqueConstraint("item_id", name="uq_assessment_responses_item_id"),
+        UniqueConstraint(
+            "assessment_attempt_id",
+            "position",
+            name="uq_assessment_response_attempt_position",
+        ),
+        UniqueConstraint(
+            "assessment_attempt_id",
+            "question_content_id",
+            name="uq_assessment_response_attempt_question",
+        ),
+        CheckConstraint(
+            "status IN ('ASSIGNED','ANSWERED','SKIPPED')",
+            name="valid_assessment_response_status",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    item_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("assessment_items.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    selected_choice_id: Mapped[str | None] = mapped_column(String(5), nullable=True)
-    text_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
-    is_correct: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    media_upload_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("media_uploads.id"), nullable=True
-    )
-    speaking_skipped: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
-    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
-
-
-class AssessmentResult(Base):
-    """Finalised placement outcome for one attempt."""
-
-    __tablename__ = "assessment_results"
-    __table_args__ = (
-        UniqueConstraint("attempt_id", name="uq_assessment_results_attempt_id"),
-    )
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    attempt_id: Mapped[uuid.UUID] = mapped_column(
+    assessment_attempt_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("assessment_attempts.id", ondelete="CASCADE"),
         nullable=False,
     )
-    placement_cefr: Mapped[str | None] = mapped_column(String(2), nullable=True)
-    confidence: Mapped[str | None] = mapped_column(String(10), nullable=True)
-    rubric_version: Mapped[str] = mapped_column(String(40), nullable=False)
-    skill_evidence: Mapped[dict] = mapped_column(JSON, nullable=False)
-    completed_at: Mapped[datetime] = mapped_column(
+    question_content_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("content_items.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="ASSIGNED"
+    )
+    answer: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    media_upload_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("media_uploads.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    grading: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    assigned_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    answered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
