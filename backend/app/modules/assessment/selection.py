@@ -79,6 +79,40 @@ class AssignmentService:
         self.session = session
         self.repository = AssessmentRepository(session)
 
+    async def current_item(
+        self, user_id: UUID, attempt_id: UUID
+    ) -> AssessmentItemResponse | None:
+        attempt = await self.repository.attempt(user_id, attempt_id)
+        if attempt is None:
+            raise NotFoundError("Assessment not found.")
+        if attempt.status != "IN_PROGRESS":
+            return None
+        row = await self.session.scalar(
+            select(AssessmentResponse)
+            .where(
+                AssessmentResponse.assessment_attempt_id == attempt.id,
+                AssessmentResponse.status == "ASSIGNED",
+            )
+            .order_by(AssessmentResponse.position.desc())
+            .limit(1)
+        )
+        if row is None:
+            return None
+        item = await self.session.scalar(
+            select(ContentItem).where(
+                ContentItem.id == row.question_content_id,
+                ContentItem.kind == "ASSESSMENT_QUESTION",
+                ContentItem.status == "PUBLISHED",
+                ContentItem.release_key == attempt.content_release,
+            )
+        )
+        if item is None or not valid_question(item):
+            raise ServiceUnavailableError(
+                "Assigned question content is unavailable.",
+                code="ASSESSMENT_CONTENT_UNAVAILABLE",
+            )
+        return public_item(row, item)
+
     async def next_item(
         self, user_id: UUID, attempt_id: UUID
     ) -> tuple[AssessmentItemResponse | None, bool]:

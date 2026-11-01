@@ -5,22 +5,26 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.exceptions import (
     ConflictError,
     ForbiddenError,
+    NotFoundError,
     RateLimitedError,
     UnauthorizedError,
 )
 from app.modules.assessment.blueprint import validate_bank
-from app.modules.assessment.models import AssessmentAttempt
+from app.modules.assessment.models import AssessmentAttempt, AssessmentResponse
 from app.modules.assessment.repository import AssessmentRepository
 from app.modules.assessment.schemas import (
+    AssessmentDetailResponse,
     StartAssessmentRequest,
     StartAssessmentResponse,
 )
+from app.modules.assessment.selection import SEQUENCE
 from app.modules.onboarding.schemas import SavePreferencesRequest
 
 
@@ -28,6 +32,39 @@ class AssessmentService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.repository = AssessmentRepository(session)
+
+    async def get(self, user_id: UUID, attempt_id: UUID) -> AssessmentDetailResponse:
+        attempt = await self.repository.attempt(user_id, attempt_id)
+        if attempt is None:
+            raise NotFoundError("Assessment not found.")
+        rows = list(
+            await self.session.scalars(
+                select(AssessmentResponse)
+                .where(AssessmentResponse.assessment_attempt_id == attempt.id)
+                .order_by(AssessmentResponse.position)
+            )
+        )
+        total_items = len(SEQUENCE)
+        answered_items = sum(
+            1 for row in rows if row.status in ("ANSWERED", "SKIPPED")
+        )
+        assigned = [row.position for row in rows if row.status == "ASSIGNED"]
+        current_position = assigned[0] if assigned else None
+        can_submit = (
+            attempt.status == "IN_PROGRESS"
+            and answered_items == total_items
+            and current_position is None
+        )
+        return AssessmentDetailResponse(
+            id=attempt.id,
+            kind=attempt.kind,
+            status=attempt.status,
+            content_release=attempt.content_release,
+            total_items=total_items,
+            answered_items=answered_items,
+            current_position=current_position,
+            can_submit=can_submit,
+        )
 
     async def start(
         self, user_id: UUID, payload: StartAssessmentRequest, key: str

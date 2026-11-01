@@ -10,6 +10,7 @@ from app.infrastructure.cache.redis import enforce_rate_limit
 from app.modules.assessment.answers import AnswerService
 from app.modules.assessment.results import ResultService
 from app.modules.assessment.schemas import (
+    AssessmentDetailResponse,
     AssessmentItemResponse,
     AssessmentResultResponse,
     SaveAnswerRequest,
@@ -23,6 +24,30 @@ from app.modules.assessment.service import AssessmentService
 from app.modules.assessment.submission import SubmissionService
 
 router = APIRouter(prefix="/assessments", tags=["Assessment"])
+
+
+@router.get("/{id}", response_model=AssessmentDetailResponse)
+async def get_assessment(
+    id: UUID, user: CurrentUser, db: DbSession, response: Response
+) -> AssessmentDetailResponse:
+    response.headers["Cache-Control"] = "no-store"
+    return await AssessmentService(db).get(user.id, id)
+
+
+@router.get(
+    "/{id}/current-item",
+    response_model=AssessmentItemResponse,
+    response_model_exclude_none=True,
+    responses={
+        204: {"description": "No unanswered item is currently assigned"},
+    },
+)
+async def current_item(id: UUID, user: CurrentUser, db: DbSession, response: Response):
+    item = await AssignmentService(db).current_item(user.id, id)
+    if item is None:
+        return Response(status_code=204, headers={"Cache-Control": "no-store"})
+    response.headers["Cache-Control"] = "no-store"
+    return item
 
 
 @router.get("/{id}/result", response_model=AssessmentResultResponse)

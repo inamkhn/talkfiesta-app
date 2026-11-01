@@ -3,7 +3,7 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
 from app.modules.onboarding.schemas import AssessmentStatus
 
@@ -19,6 +19,17 @@ class StartAssessmentResponse(BaseModel):
     content_release: str
     estimated_minutes: int = 7
     resumed: bool
+
+
+class AssessmentDetailResponse(BaseModel):
+    id: UUID
+    kind: Literal["INITIAL", "REASSESSMENT"]
+    status: AssessmentStatus
+    content_release: str
+    total_items: int
+    answered_items: int
+    current_position: int | None = None
+    can_submit: bool
 
 
 class PublicChoice(BaseModel):
@@ -139,6 +150,7 @@ class PublicPlacement(BaseModel):
     strengths: list[str] = Field(max_length=20)
     improvement_priorities: list[str] = Field(max_length=20)
     rubric_version: str = Field(min_length=1, max_length=40)
+    _langsmith_run_id: str | None = PrivateAttr(default=None)
 
 
 class EvaluationFailure(BaseModel):

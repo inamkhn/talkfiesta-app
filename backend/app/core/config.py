@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,6 +31,37 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
     rate_limit_enabled: bool = True
+    celery_broker_url: str = "redis://localhost:6379/1"
+    celery_worker_concurrency: int = Field(default=2, ge=1, le=32)
+    celery_task_soft_time_limit: int = Field(default=240, ge=1)
+    celery_task_time_limit: int = Field(default=300, ge=2)
+    celery_visibility_timeout: int = Field(default=900, ge=3)
+    outbox_dispatch_enabled: bool = False
+    outbox_batch_size: int = Field(default=20, ge=1, le=100)
+    outbox_poll_seconds: float = Field(default=2, ge=0.1, le=60)
+    outbox_lease_seconds: int = Field(default=120, ge=30, le=3600)
+    outbox_max_attempts: int = Field(default=20, ge=1, le=100)
+    assessment_execution_enabled: bool = False
+    assessment_job_lease_seconds: int = Field(default=360, ge=30)
+    assessment_job_max_attempts: int = Field(default=3, ge=1, le=10)
+
+    @model_validator(mode="after")
+    def validate_celery_timeouts(self):
+        if self.assessment_job_lease_seconds <= self.celery_task_time_limit:
+            raise ValueError(
+                "Assessment job lease must exceed the Celery hard time limit."
+            )
+        if (
+            not self.celery_task_soft_time_limit
+            < self.celery_task_time_limit
+            < self.celery_visibility_timeout
+        ):
+            raise ValueError(
+                "Celery timeouts must satisfy soft limit < hard limit < visibility timeout."
+            )
+        if not self.celery_broker_url.startswith(("redis://", "rediss://")):
+            raise ValueError("CELERY_BROKER_URL must use redis:// or rediss://.")
+        return self
 
     # Auth. The secret must be injected per environment; the default only keeps
     # local development runnable and is rejected outside the local environment.
@@ -66,6 +98,16 @@ class Settings(BaseSettings):
     audio_retention_days: int = 7
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"
+    openai_api_key: str = ""
+    openai_evaluation_model: str = "gpt-4o-mini"
+    openai_transcription_model: str = "gpt-4o-mini-transcribe"
+    openai_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    assessment_rubric_version: str = "placement-v1"
+    langsmith_tracing_enabled: bool = False
+    langsmith_api_key: str = ""
+    langsmith_project: str = "talkfiesta"
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_redact_learner_text: bool = True
 
 
 @lru_cache
