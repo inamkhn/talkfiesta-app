@@ -56,6 +56,16 @@ class Settings(BaseSettings):
     smtp_ssl: bool = False
     smtp_timeout_seconds: int = 10
     google_client_id: str = ""
+    assessment_content_release: str = "placement-bank-v1"
+    assessment_starts_per_day: int = 3
+    s3_bucket: str = ""
+    s3_region: str = "us-east-1"
+    audio_upload_url_seconds: int = 300
+    audio_max_bytes: int = 10 * 1024 * 1024
+    audio_max_duration_seconds: int = 180
+    audio_retention_days: int = 7
+    ffmpeg_path: str = "ffmpeg"
+    ffprobe_path: str = "ffprobe"
 
 
 @lru_cache

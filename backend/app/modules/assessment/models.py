@@ -22,9 +22,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database.base import Base
 
-_ACTIVE_ATTEMPT_STATUSES = (
-    "'IN_PROGRESS','SUBMITTED','PROCESSING','FAILED_RETRYABLE'"
-)
+_ACTIVE_ATTEMPT_STATUSES = "'IN_PROGRESS','SUBMITTED','PROCESSING','FAILED_RETRYABLE'"
 
 
 class AssessmentAttempt(Base):
@@ -117,9 +115,7 @@ class AssessmentResponse(Base):
         nullable=False,
     )
     position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="ASSIGNED"
-    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ASSIGNED")
     answer: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     media_upload_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -133,4 +129,41 @@ class AssessmentResponse(Base):
     )
     answered_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
+    )
+
+
+class AssessmentSubmitRequest(Base):
+    """User-scoped submission keys bound permanently to one attempt."""
+
+    __tablename__ = "assessment_submit_requests"
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    assessment_attempt_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_attempts.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AssessmentStartRequest(Base):
+    """Durable per-user start keys, including keys used to resume an attempt."""
+
+    __tablename__ = "assessment_start_requests"
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    assessment_attempt_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("assessment_attempts.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

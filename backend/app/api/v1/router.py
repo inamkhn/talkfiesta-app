@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.modules.assessment.router import router as assessment_router
 from app.modules.auth.account_router import router as account_router
 from app.modules.auth.router import router as auth_router
+from app.modules.media.router import router as media_router
+from app.modules.onboarding.router import router as onboarding_router
 from app.modules.users.router import router as users_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
 api_router.include_router(account_router)
 api_router.include_router(users_router)
+api_router.include_router(onboarding_router)
+api_router.include_router(assessment_router)
+api_router.include_router(media_router)

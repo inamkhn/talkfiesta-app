@@ -47,6 +47,22 @@ class MediaUpload(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     purpose: Mapped[str] = mapped_column(String(30), nullable=False)
+    assessment_response_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "assessment_responses.id",
+            name="fk_media_assessment_response",
+            use_alter=True,
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+    expected_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    checksum_sha256: Mapped[str | None] = mapped_column(String(44), nullable=True)
+    upload_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     object_key: Mapped[str] = mapped_column(String(255), nullable=False)
     content_type: Mapped[str] = mapped_column(String(80), nullable=False)
     size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)

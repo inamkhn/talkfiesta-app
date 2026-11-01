@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
 
+from app.modules.onboarding.schemas import PREFERENCE_ADAPTERS
+
 
 class UserProfile(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -31,6 +33,16 @@ class UpdateProfileRequest(BaseModel):
         default_factory=dict,
         description="Merge these top-level keys into existing preferences. Nested values are replaced.",
     )
+
+    @field_validator("preferences")
+    @classmethod
+    def validate_learning_preferences(
+        cls, value: dict[str, JsonValue]
+    ) -> dict[str, JsonValue]:
+        for key, adapter in PREFERENCE_ADAPTERS.items():
+            if key in value:
+                value[key] = adapter.validate_python(value[key])
+        return value
 
     @field_validator("display_name")
     @classmethod

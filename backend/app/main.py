@@ -12,6 +12,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.error_handlers import register_exception_handlers
 from app.core.logging import RequestContextMiddleware
+from app.infrastructure.database import model_registry  # noqa: F401
 
 # psycopg's async driver cannot run on Windows' default ProactorEventLoop, and
 # the policy must be installed before the loop exists. Prefer
