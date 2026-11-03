@@ -7,6 +7,7 @@ from functools import lru_cache
 
 from openai import (
     APIConnectionError,
+    APIResponseValidationError,
     APIStatusError,
     APITimeoutError,
     InternalServerError,
@@ -43,27 +44,29 @@ def openai_client() -> OpenAI:
 
 def transcribe_audio_bytes(data: bytes, content_type: str) -> str:
     """Transcribe verified audio bytes into plain text."""
-    ext = _EXTENSIONS.get(content_type, "webm")
-    buffer = io.BytesIO(data)
-    buffer.name = f"recording.{ext}"
+    ext = _EXTENSIONS.get(content_type)
+    if ext is None or not 0 < len(data) <= min(settings.audio_max_bytes, 25_000_000):
+        raise ValueError("Unsupported or oversized transcription audio.")
     try:
-        response = openai_client().audio.transcriptions.create(
-            model=settings.openai_transcription_model,
-            file=(buffer.name, buffer, content_type),
-        )
+        with io.BytesIO(data) as buffer:
+            response = openai_client().audio.transcriptions.create(
+                model=settings.openai_transcription_model,
+                file=(f"recording.{ext}", buffer, content_type),
+                response_format="json",
+            )
     except (
         APIConnectionError,
         APITimeoutError,
         RateLimitError,
         InternalServerError,
+        APIResponseValidationError,
     ) as exc:
         raise RetryableEvaluationError("OpenAI transcription transient error.") from exc
     except APIStatusError as exc:
-        if exc.status_code >= 500 or exc.status_code == 429:
-            raise RetryableEvaluationError(
-                "OpenAI transcription unavailable."
-            ) from exc
+        if exc.status_code >= 500 or exc.status_code in (408, 409, 429):
+            raise RetryableEvaluationError("OpenAI transcription unavailable.") from exc
         raise
     text = getattr(response, "text", None)
-    return text.strip() if isinstance(text, str) else ""
-
+    if not isinstance(text, str) or len(text) > 20000:
+        raise RetryableEvaluationError("OpenAI returned an invalid transcription.")
+    return text.strip()

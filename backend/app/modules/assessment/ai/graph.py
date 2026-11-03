@@ -27,4 +27,3 @@ def build_assessment_graph():
     graph.add_edge("evaluate_writing", "determine_placement")
     graph.add_edge("determine_placement", END)
     return graph.compile()
-

@@ -135,11 +135,23 @@ class SkillPlacement(BaseModel):
         return self
 
 
+class UnassessedPronunciation(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    level: None = None
+    assessed: Literal[False] = False
+    reason: Literal["AUDIO_PRONUNCIATION_NOT_EVALUATED"] = (
+        "AUDIO_PRONUNCIATION_NOT_EVALUATED"
+    )
+
+
 class PlacementSkills(BaseModel):
     grammar: SkillPlacement
     vocabulary: SkillPlacement
     writing: SkillPlacement
     speaking: SkillPlacement
+    pronunciation: UnassessedPronunciation = Field(
+        default_factory=UnassessedPronunciation
+    )
 
 
 class PublicPlacement(BaseModel):
@@ -150,6 +162,7 @@ class PublicPlacement(BaseModel):
     strengths: list[str] = Field(max_length=20)
     improvement_priorities: list[str] = Field(max_length=20)
     rubric_version: str = Field(min_length=1, max_length=40)
+    assessment_version: str | None = Field(default=None, min_length=1, max_length=60)
     _langsmith_run_id: str | None = PrivateAttr(default=None)
 
 
@@ -159,8 +172,34 @@ class EvaluationFailure(BaseModel):
     retryable: bool
 
 
+class EvaluationProgress(BaseModel):
+    job_id: UUID | None = None
+    status: Literal[
+        "NOT_STARTED",
+        "QUEUED",
+        "RUNNING",
+        "RETRY_SCHEDULED",
+        "SUCCEEDED",
+        "FAILED_FINAL",
+    ]
+    stage: (
+        Literal[
+            "WAITING_FOR_WORKER",
+            "TRANSCRIBING_AUDIO",
+            "EVALUATING_LANGUAGE",
+            "DETERMINING_PLACEMENT",
+            "SAVING_RESULTS",
+            "DONE",
+        ]
+        | None
+    ) = None
+    error: EvaluationFailure | None = None
+
+
 class AssessmentResultResponse(BaseModel):
+    assessment_id: UUID
     status: AssessmentStatus
+    evaluation: EvaluationProgress
     placement: PublicPlacement | None = None
     retry_after_seconds: int | None = None
     error: EvaluationFailure | None = None

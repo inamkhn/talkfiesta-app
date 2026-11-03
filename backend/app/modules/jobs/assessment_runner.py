@@ -10,8 +10,10 @@ from sqlalchemy import func, select
 from app.core.config import settings
 from app.infrastructure.database import model_registry  # noqa: F401
 from app.infrastructure.database.sync_session import SyncSessionLocal
-from app.modules.assessment.models import AssessmentAttempt
-from app.modules.assessment.schemas import PublicPlacement
+from app.modules.assessment.ai.schemas import AssessmentEvaluation
+from app.modules.assessment.blueprint import ASSESSMENT_VERSION
+from app.modules.assessment.models import AssessmentAttempt, AssessmentResponse
+from app.modules.assessment.placement_policy import PLACEMENT_POLICY_VERSION
 from app.modules.auth.models import User
 from app.modules.jobs.models import AiJob, OutboxEvent
 
@@ -84,6 +86,20 @@ def fail_or_retry(db, attempt, job, now, code: str, retryable: bool) -> None:
         attempt.status = "FAILED_FINAL"
         job.finished_at = now
         job.next_attempt_at = None
+        # Terminal jobs no longer need temporary transcripts/provider checkpoints.
+        for response in db.scalars(
+            select(AssessmentResponse)
+            .where(AssessmentResponse.assessment_attempt_id == attempt.id)
+            .order_by(AssessmentResponse.position)
+            .with_for_update()
+        ):
+            if (
+                isinstance(response.grading, dict)
+                and "ai_checkpoints" in response.grading
+            ):
+                response.grading = {
+                    k: v for k, v in response.grading.items() if k != "ai_checkpoints"
+                }
 
 
 def claim_job(job_id: UUID) -> JobClaim | None:
@@ -153,22 +169,68 @@ def report_stage(claim: JobClaim, stage: str) -> None:
 
 def finish(
     claim: JobClaim,
-    result: PublicPlacement,
+    result: AssessmentEvaluation,
     *,
     langsmith_run_id: str | None = None,
 ) -> None:
     trace_id = langsmith_run_id or getattr(result, "_langsmith_run_id", None)
-    result = PublicPlacement.model_validate(
-        result.model_dump() if isinstance(result, PublicPlacement) else result
+    evaluation = AssessmentEvaluation.model_validate(
+        result.model_dump() if isinstance(result, AssessmentEvaluation) else result
     )
-    if not result.skills.writing.assessed:
-        raise ValueError("Required writing evidence is unavailable")
+    result = evaluation.placement
     with SyncSessionLocal.begin() as db:
         user, attempt, job, now = require_claim(db, claim)
         if not user.is_active:
             fail_or_retry(db, attempt, job, now, "ACCOUNT_INACTIVE", False)
             return
-        attempt.result = result.model_dump(mode="json")
+        for feedback in evaluation.responses:
+            response = db.scalar(
+                select(AssessmentResponse)
+                .where(
+                    AssessmentResponse.id == feedback.response_id,
+                    AssessmentResponse.assessment_attempt_id == attempt.id,
+                )
+                .with_for_update()
+            )
+            expected_kind = (
+                "SHORT_WRITING" if feedback.skill == "WRITING" else "RECORDED_SPEAKING"
+            )
+            if (
+                response is None
+                or response.revision != feedback.revision
+                or response.question_content_id != feedback.question_id
+                or response.status not in ("ANSWERED", "SKIPPED")
+                or not isinstance(response.answer, dict)
+                or response.answer.get("kind") != expected_kind
+                or (feedback.placement.assessed and response.status != "ANSWERED")
+                or (
+                    response.status == "SKIPPED"
+                    and feedback.placement.reason != response.answer.get("skip_reason")
+                )
+            ):
+                raise ValueError("Evaluation does not match the frozen response.")
+            response.grading = {
+                **{
+                    k: v
+                    for k, v in (response.grading or {}).items()
+                    if k != "ai_checkpoints"
+                },
+                "evaluation": feedback.model_dump(
+                    mode="json", exclude={"response_id", "question_id"}
+                ),
+                "model": settings.openai_evaluation_model
+                if feedback.language is not None
+                else None,
+                "rubric_version": result.rubric_version,
+            }
+        # Recheck after response locks; a lost claim rolls back all pending grading writes.
+        if job.lease_expires_at <= db.scalar(select(func.clock_timestamp())):
+            raise LostClaimError()
+        attempt.result = {
+            **result.model_dump(mode="json"),
+            "policy_version": PLACEMENT_POLICY_VERSION,
+            "assessment_version": ASSESSMENT_VERSION,
+        }
         attempt.placement_cefr = result.cefr
         attempt.confidence = result.confidence
         attempt.completed_at = now

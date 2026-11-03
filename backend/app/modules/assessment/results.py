@@ -11,9 +11,20 @@ from app.modules.assessment.models import AssessmentAttempt, AssessmentResponse
 from app.modules.assessment.schemas import (
     AssessmentResultResponse,
     EvaluationFailure,
+    EvaluationProgress,
     PublicPlacement,
     SkillPlacement,
 )
+from app.modules.jobs.models import AiJob
+
+PUBLIC_STAGES = {
+    "WAITING_FOR_WORKER",
+    "TRANSCRIBING_AUDIO",
+    "EVALUATING_LANGUAGE",
+    "DETERMINING_PLACEMENT",
+    "SAVING_RESULTS",
+    "DONE",
+}
 
 
 class ResultService:
@@ -21,33 +32,57 @@ class ResultService:
         self.session = session
 
     async def get(self, user_id: UUID, attempt_id: UUID) -> AssessmentResultResponse:
-        attempt = await self.session.scalar(
-            select(AssessmentAttempt).where(
-                AssessmentAttempt.id == attempt_id,
-                AssessmentAttempt.user_id == user_id,
+        latest_job_id = (
+            select(AiJob.id)
+            .where(
+                AiJob.assessment_attempt_id == AssessmentAttempt.id,
+                AiJob.user_id == user_id,
+                AiJob.job_type == "ASSESSMENT",
             )
+            .order_by(AiJob.created_at.desc(), AiJob.id.desc())
+            .limit(1)
+            .correlate(AssessmentAttempt)
+            .scalar_subquery()
         )
-        if attempt is None:
-            raise NotFoundError("Assessment not found.")
-        if attempt.status in ("SUBMITTED", "PROCESSING"):
-            return AssessmentResultResponse(
-                status=attempt.status, retry_after_seconds=3
+        record = (
+            await self.session.execute(
+                select(AssessmentAttempt, AiJob.id, AiJob.status, AiJob.stage)
+                .outerjoin(AiJob, AiJob.id == latest_job_id)
+                .where(
+                    AssessmentAttempt.id == attempt_id,
+                    AssessmentAttempt.user_id == user_id,
+                )
+                .execution_options(populate_existing=True)
             )
+        ).one_or_none()
+        if record is None:
+            raise NotFoundError("Assessment not found.")
+        attempt, job_id, job_status, job_stage = record
+        progress = self.progress(attempt.status, job_id, job_status, job_stage)
+        common = {
+            "assessment_id": attempt.id,
+            "status": attempt.status,
+            "evaluation": progress,
+        }
+        if attempt.status in ("SUBMITTED", "PROCESSING"):
+            return AssessmentResultResponse(**common, retry_after_seconds=3)
         if attempt.status in ("FAILED_RETRYABLE", "FAILED_FINAL"):
             retryable = attempt.status == "FAILED_RETRYABLE"
+            error = EvaluationFailure(
+                code="EVALUATION_RETRYABLE" if retryable else "EVALUATION_FAILED",
+                message="Evaluation will retry automatically."
+                if retryable
+                else "Evaluation failed. Please restart the assessment.",
+                retryable=retryable,
+            )
+            progress.error = error
             return AssessmentResultResponse(
-                status=attempt.status,
+                **common,
                 retry_after_seconds=5 if retryable else None,
-                error=EvaluationFailure(
-                    code="EVALUATION_RETRYABLE" if retryable else "EVALUATION_FAILED",
-                    message="Evaluation could not finish and is eligible for retry."
-                    if retryable
-                    else "Evaluation failed. Please restart the assessment.",
-                    retryable=retryable,
-                ),
+                error=error,
             )
         if attempt.status != "COMPLETED":
-            return AssessmentResultResponse(status=attempt.status)
+            return AssessmentResultResponse(**common)
         raw = attempt.result
         if not isinstance(raw, dict):
             raise self.unavailable()
@@ -64,6 +99,7 @@ class ResultService:
                     "strengths",
                     "improvement_priorities",
                     "rubric_version",
+                    "assessment_version",
                 )
             },
         }
@@ -73,13 +109,13 @@ class ResultService:
             raise self.unavailable() from exc
         # Do not report speaking ability if the learner explicitly skipped it,
         # even if an evaluator accidentally produced a speaking score.
-        answers = list(
-            await self.session.scalars(
-                select(AssessmentResponse).where(
+        answers = (
+            await self.session.execute(
+                select(AssessmentResponse.status, AssessmentResponse.answer).where(
                     AssessmentResponse.assessment_attempt_id == attempt_id,
                 )
             )
-        )
+        ).all()
         speaking = [
             row
             for row in answers
@@ -89,7 +125,7 @@ class ResultService:
         if (
             len(speaking) != 1
             or speaking[0].status != "ANSWERED"
-            or speaking[0].media_upload_id is None
+            or not speaking[0].answer.get("media_upload_id")
         ):
             reason = "NOT_ASSESSED"
             if len(speaking) == 1 and speaking[0].status == "SKIPPED":
@@ -99,7 +135,43 @@ class ResultService:
             placement.skills.speaking = SkillPlacement(
                 level=None, assessed=False, reason=reason
             )
-        return AssessmentResultResponse(status="COMPLETED", placement=placement)
+            placement.confidence = "LOW"
+        return AssessmentResultResponse(**common, placement=placement)
+
+    @staticmethod
+    def progress(
+        attempt_status: str,
+        job_id: UUID | None,
+        job_status: str | None,
+        job_stage: str | None,
+    ) -> EvaluationProgress:
+        mapping = {
+            "IN_PROGRESS": (None, "NOT_STARTED"),
+            "SUBMITTED": ("PENDING", "QUEUED"),
+            "PROCESSING": ("RUNNING", "RUNNING"),
+            "FAILED_RETRYABLE": ("RETRYABLE", "RETRY_SCHEDULED"),
+            "FAILED_FINAL": ("FAILED", "FAILED_FINAL"),
+            "COMPLETED": ("SUCCEEDED", "SUCCEEDED"),
+        }
+        expected, status = mapping[attempt_status]
+        # Historical terminal attempts may predate durable jobs. Active submitted
+        # attempts must have a consistent job; don't fabricate worker progress.
+        if job_status != expected and not (
+            job_id is None and attempt_status in ("COMPLETED", "FAILED_FINAL")
+        ):
+            raise ServiceUnavailableError(
+                "Assessment progress is temporarily unavailable. Please try again later.",
+                code="ASSESSMENT_PROGRESS_UNAVAILABLE",
+            )
+        if status == "NOT_STARTED":
+            stage = None
+        elif status == "QUEUED":
+            stage = "WAITING_FOR_WORKER"
+        elif status == "SUCCEEDED":
+            stage = "DONE"
+        else:
+            stage = job_stage if job_stage in PUBLIC_STAGES - {"DONE"} else None
+        return EvaluationProgress(job_id=job_id, status=status, stage=stage)
 
     @staticmethod
     def unavailable() -> ServiceUnavailableError:

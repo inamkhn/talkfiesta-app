@@ -50,10 +50,18 @@ async def current_item(id: UUID, user: CurrentUser, db: DbSession, response: Res
     return item
 
 
-@router.get("/{id}/result", response_model=AssessmentResultResponse)
+@router.get(
+    "/{id}/result",
+    response_model=AssessmentResultResponse,
+    responses={
+        404: {"description": "Assessment not found or not owned by the current user"},
+        503: {"description": "Saved progress or placement is temporarily unavailable"},
+    },
+)
 async def assessment_result(
     id: UUID, user: CurrentUser, db: DbSession, response: Response
 ) -> AssessmentResultResponse:
+    """Poll safe evaluation progress or the completed provisional placement."""
     result = await ResultService(db).get(user.id, id)
     response.headers["Cache-Control"] = "no-store"
     if result.retry_after_seconds is not None:

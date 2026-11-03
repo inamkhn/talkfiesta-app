@@ -96,6 +96,7 @@ class Settings(BaseSettings):
     audio_max_bytes: int = 10 * 1024 * 1024
     audio_max_duration_seconds: int = 180
     audio_retention_days: int = 7
+    assessment_checkpoint_retention_days: int = Field(default=7, ge=1, le=365)
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"
     openai_api_key: str = ""

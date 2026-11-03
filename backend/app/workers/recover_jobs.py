@@ -1,7 +1,10 @@
 """Recover bounded batches of expired jobs and lost broker deliveries."""
 
 import argparse
+import logging
+import signal
 from datetime import timedelta
+from threading import Event
 
 from sqlalchemy import func, or_, select
 
@@ -9,6 +12,8 @@ from app.core.config import settings
 from app.infrastructure.database.sync_session import SyncSessionLocal
 from app.modules.jobs.assessment_runner import recover_job
 from app.modules.jobs.models import AiJob, OutboxEvent
+
+logger = logging.getLogger(__name__)
 
 
 def recover_batch(limit: int = 100) -> int:
@@ -65,10 +70,29 @@ def recover_batch(limit: int = 100) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, default=100)
+    parser.add_argument(
+        "--loop", action="store_true", help="Run continuously until stopped"
+    )
+    parser.add_argument("--interval", type=int, default=20)
     args = parser.parse_args()
     if not 1 <= args.limit <= 1000:
         parser.error("limit must be between 1 and 1000")
-    print(f"Recovered jobs: {recover_batch(args.limit)}")
+    if not 5 <= args.interval <= 60:
+        parser.error("interval must be between 5 and 60 seconds")
+    logging.basicConfig(level=logging.INFO)
+    stop = Event()
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(signum, lambda *_: stop.set())
+    while not stop.is_set():
+        try:
+            logger.info("recovered_jobs count=%s", recover_batch(args.limit))
+        except Exception as exc:  # noqa: BLE001 - sanitized operational logging
+            logger.error("recovery_failed error_type=%s", type(exc).__name__)
+            if not args.loop:
+                raise SystemExit(1) from None
+        if not args.loop:
+            return
+        stop.wait(args.interval)
 
 
 if __name__ == "__main__":

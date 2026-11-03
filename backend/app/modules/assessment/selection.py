@@ -12,13 +12,11 @@ from app.core.exceptions import (
     ServiceUnavailableError,
     UnauthorizedError,
 )
-from app.modules.assessment.blueprint import LEVELS
+from app.modules.assessment.blueprint import LEVELS, SEQUENCE
 from app.modules.assessment.models import AssessmentAttempt, AssessmentResponse
 from app.modules.assessment.repository import AssessmentRepository
 from app.modules.assessment.schemas import AssessmentItemResponse, PublicChoice
 from app.modules.content.models import ContentItem
-
-SEQUENCE = ("GRAMMAR",) * 4 + ("VOCABULARY",) * 4 + ("WRITING", "SPEAKING")
 
 
 def valid_question(item: ContentItem) -> bool:

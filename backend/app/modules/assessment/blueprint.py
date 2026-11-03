@@ -6,6 +6,8 @@ from app.core.exceptions import ServiceUnavailableError
 from app.modules.content.models import ContentItem
 
 LEVELS = ("A1", "A2", "B1", "B2", "C1", "C2")
+ASSESSMENT_VERSION = "initial-assessment-v1"
+SEQUENCE = ("GRAMMAR",) * 4 + ("VOCABULARY",) * 4 + ("WRITING", "SPEAKING")
 
 
 def validate_bank(items: list[ContentItem]) -> None:

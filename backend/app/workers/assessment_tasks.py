@@ -25,9 +25,11 @@ def execute_assessment(job_id: str) -> None:
         return
     try:
         from app.modules.assessment.ai.evaluators import evaluate_assessment
+        from app.modules.assessment.ai.evidence import load_assessment_evidence
 
+        evidence = load_assessment_evidence(claim.job_id, claim.token)
         result = evaluate_assessment(
-            claim.job_id, lambda stage: report_stage(claim, stage)
+            evidence, lambda stage: report_stage(claim, stage), claim=claim
         )
         report_stage(claim, "SAVING_RESULTS")
         finish(claim, result)

@@ -76,13 +76,15 @@ def build_assessment_trace_config(
         "model": settings.openai_evaluation_model,
         "environment": settings.environment,
     }
-    callbacks: list[ Any ] = []
+    callbacks: list[Any] = []
     if settings.langsmith_tracing_enabled and settings.langsmith_api_key:
         client = Client(
             api_url=settings.langsmith_endpoint,
             api_key=settings.langsmith_api_key,
-            hide_inputs=sanitize_trace_payload,
-            hide_outputs=sanitize_trace_payload,
+            # Entire payloads can contain quoted learner text, nested dataclasses,
+            # or provider parsing errors. Regex redaction is not sufficient here.
+            hide_inputs=settings.langsmith_redact_learner_text,
+            hide_outputs=settings.langsmith_redact_learner_text,
         )
         callbacks.append(
             LangChainTracer(
@@ -98,4 +100,3 @@ def build_assessment_trace_config(
         "callbacks": callbacks,
     }
     return trace_run_id, config
-
