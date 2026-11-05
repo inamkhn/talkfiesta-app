@@ -13,6 +13,7 @@ from app.modules.assessment.models import AssessmentAttempt, AssessmentResponse
 from app.modules.jobs.assessment_runner import locked_job
 from app.modules.jobs.models import AiJob
 from app.modules.media.models import MediaUpload
+from app.modules.practice.models import PracticeSubmission
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,17 @@ def live_job(attempt_id):
 
 
 def expired_audio():
+    active_speaking = (
+        select(PracticeSubmission.id)
+        .join(AiJob, AiJob.practice_submission_id == PracticeSubmission.id)
+        .where(
+            PracticeSubmission.media_upload_id == MediaUpload.id,
+            AiJob.job_type == "SPEAKING_FEEDBACK",
+            AiJob.status == "RUNNING",
+            AiJob.lease_expires_at > func.clock_timestamp(),
+        )
+        .exists()
+    )
     active_audio = (
         select(AssessmentResponse.id)
         .where(
@@ -49,6 +61,7 @@ def expired_audio():
             < func.clock_timestamp() - timedelta(minutes=15)
         ),
         ~active_audio,
+        ~active_speaking,
     )
 
 

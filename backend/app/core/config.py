@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     outbox_lease_seconds: int = Field(default=120, ge=30, le=3600)
     outbox_max_attempts: int = Field(default=20, ge=1, le=100)
     assessment_execution_enabled: bool = False
+    speaking_execution_enabled: bool = False
+    speaking_job_max_attempts: int = Field(default=3, ge=1, le=10)
     assessment_job_lease_seconds: int = Field(default=360, ge=30)
     assessment_job_max_attempts: int = Field(default=3, ge=1, le=10)
 
@@ -96,6 +98,9 @@ class Settings(BaseSettings):
     audio_max_bytes: int = 10 * 1024 * 1024
     audio_max_duration_seconds: int = 180
     audio_retention_days: int = 7
+    speaking_audio_max_bytes: int = Field(default=15 * 1024 * 1024, ge=1)
+    speaking_audio_min_duration_seconds: int = Field(default=10, ge=1, le=600)
+    speaking_audio_max_duration_seconds: int = Field(default=180, ge=1, le=600)
     assessment_checkpoint_retention_days: int = Field(default=7, ge=1, le=365)
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"

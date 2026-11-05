@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.infrastructure.database.sync_session import SyncSessionLocal
 from app.modules.jobs.assessment_runner import recover_job
 from app.modules.jobs.models import AiJob, OutboxEvent
+from app.modules.jobs.speaking_runner import recover_job as recover_speaking_job
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +31,14 @@ def recover_batch(limit: int = 100) -> int:
     )
     with SyncSessionLocal() as db:
         ids = list(
-            db.scalars(
-                select(AiJob.id)
+            db.execute(
+                select(AiJob.id, AiJob.job_type)
                 .where(
-                    AiJob.job_type == "ASSESSMENT",
+                    AiJob.job_type.in_(
+                        ["ASSESSMENT", "SPEAKING_FEEDBACK"]
+                        if settings.speaking_execution_enabled
+                        else ["ASSESSMENT"]
+                    ),
                     AiJob.status.in_(("RUNNING", "RETRYABLE", "PENDING")),
                     or_(
                         AiJob.next_attempt_at.is_(None),
@@ -60,8 +65,11 @@ def recover_batch(limit: int = 100) -> int:
         )
     # Recheck under locks because another recovery process may win the race.
     changed = 0
-    for job_id in ids:
-        changed += int(recover_job(job_id))
+    for job_id, job_type in ids:
+        handler = (
+            recover_speaking_job if job_type == "SPEAKING_FEEDBACK" else recover_job
+        )
+        changed += int(handler(job_id))
         if changed >= limit:
             break
     return changed

@@ -71,9 +71,7 @@ class ModuleProgress(Base):
 
     __tablename__ = "module_progress"
     __table_args__ = (
-        UniqueConstraint(
-            "learning_plan_id", "module", name="uq_plan_module_progress"
-        ),
+        UniqueConstraint("learning_plan_id", "module", name="uq_plan_module_progress"),
         CheckConstraint(
             "module IN ('SPEAKING','VOCABULARY','WRITING')",
             name="valid_progress_module",
@@ -131,17 +129,13 @@ class ActivityCompletion(Base):
         UniqueConstraint(
             "source_submission_id", name="uq_activity_completion_submission"
         ),
-        UniqueConstraint(
-            "source_session_id", name="uq_activity_completion_session"
-        ),
+        UniqueConstraint("source_session_id", name="uq_activity_completion_session"),
         CheckConstraint(
             "(source_submission_id IS NOT NULL AND source_session_id IS NULL) OR "
             "(source_submission_id IS NULL AND source_session_id IS NOT NULL)",
             name="exactly_one_completion_source",
         ),
-        Index(
-            "ix_activity_completions_user_date", "user_id", "local_practice_date"
-        ),
+        Index("ix_activity_completions_user_date", "user_id", "local_practice_date"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -175,4 +169,3 @@ class ActivityCompletion(Base):
     completed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
-

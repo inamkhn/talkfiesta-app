@@ -17,15 +17,21 @@ class DispatchClaim:
     event_id: UUID
     token: UUID
     job_id: UUID
+    job_type: str = "ASSESSMENT"
 
 
 def claim_next() -> DispatchClaim | None:
+    event_types = []
+    if settings.assessment_execution_enabled:
+        event_types.append("EVALUATION_REQUESTED")
+    if settings.speaking_execution_enabled:
+        event_types.append("SPEAKING_FEEDBACK_REQUESTED")
     with SyncSessionLocal.begin() as db:
         now = db.scalar(select(func.now()))
         event = db.scalar(
             select(OutboxEvent)
             .where(
-                OutboxEvent.event_type == "EVALUATION_REQUESTED",
+                OutboxEvent.event_type.in_(event_types),
                 OutboxEvent.published_at.is_(None),
                 OutboxEvent.failed_at.is_(None),
                 or_(
@@ -52,22 +58,40 @@ def claim_next() -> DispatchClaim | None:
             return None
         job = db.get(AiJob, event.ai_job_id) if event.ai_job_id else None
         payload = event.payload
+        valid_binding = (
+            job is not None
+            and isinstance(payload, dict)
+            and (
+                (
+                    event.event_type == "EVALUATION_REQUESTED"
+                    and job.job_type == "ASSESSMENT"
+                    and job.assessment_attempt_id is not None
+                    and payload.get("assessment_attempt_id")
+                    == str(job.assessment_attempt_id)
+                )
+                or (
+                    event.event_type == "SPEAKING_FEEDBACK_REQUESTED"
+                    and job.job_type == "SPEAKING_FEEDBACK"
+                    and job.practice_submission_id is not None
+                    and payload.get("practice_submission_id")
+                    == str(job.practice_submission_id)
+                )
+            )
+        )
         if (
             job is None
-            or job.job_type != "ASSESSMENT"
-            or job.assessment_attempt_id is None
+            or not valid_binding
             or not isinstance(payload, dict)
             or payload.get("job_id") != str(job.id)
-            or payload.get("assessment_attempt_id") != str(job.assessment_attempt_id)
         ):
             event.failed_at = now
-            event.last_error_code = "INVALID_ASSESSMENT_EVENT"
+            event.last_error_code = "INVALID_EVALUATION_EVENT"
             return None
         token = uuid4()
         event.claim_token = token
         event.lease_expires_at = now + timedelta(seconds=settings.outbox_lease_seconds)
         event.attempt_count += 1
-        return DispatchClaim(event.id, token, job.id)
+        return DispatchClaim(event.id, token, job.id, job.job_type)
 
 
 def mark_published(claim: DispatchClaim) -> bool:

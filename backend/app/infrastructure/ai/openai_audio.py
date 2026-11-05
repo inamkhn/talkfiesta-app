@@ -42,10 +42,14 @@ def openai_client() -> OpenAI:
     )
 
 
-def transcribe_audio_bytes(data: bytes, content_type: str) -> str:
+def transcribe_audio_bytes(
+    data: bytes, content_type: str, *, max_bytes: int | None = None
+) -> str:
     """Transcribe verified audio bytes into plain text."""
     ext = _EXTENSIONS.get(content_type)
-    if ext is None or not 0 < len(data) <= min(settings.audio_max_bytes, 25_000_000):
+    if ext is None or not 0 < len(data) <= min(
+        settings.audio_max_bytes if max_bytes is None else max_bytes, 25_000_000
+    ):
         raise ValueError("Unsupported or oversized transcription audio.")
     try:
         with io.BytesIO(data) as buffer:

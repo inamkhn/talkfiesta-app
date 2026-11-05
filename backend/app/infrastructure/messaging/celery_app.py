@@ -7,15 +7,21 @@ from app.core.config import settings
 
 OPERATIONS_QUEUE = "talkfiesta.operations"
 ASSESSMENT_QUEUE = "talkfiesta.assessments"
+SPEAKING_QUEUE = "talkfiesta.speaking"
 TASK_EXCHANGE = Exchange("talkfiesta", type="direct", durable=True)
 
 celery_app = Celery(
     "talkfiesta",
     broker=settings.celery_broker_url,
-    include=["app.workers.health_tasks", "app.workers.assessment_tasks"],
+    include=[
+        "app.workers.health_tasks",
+        "app.workers.assessment_tasks",
+        "app.workers.speaking_tasks",
+    ],
 )
 celery_app.conf.update(
     task_queues=(
+        Queue(SPEAKING_QUEUE, TASK_EXCHANGE, routing_key=SPEAKING_QUEUE, durable=True),
         Queue(
             OPERATIONS_QUEUE, TASK_EXCHANGE, routing_key=OPERATIONS_QUEUE, durable=True
         ),

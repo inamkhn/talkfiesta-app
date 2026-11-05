@@ -1,4 +1,4 @@
-"""Assessment audio upload contracts."""
+"""Purpose-specific assessment and Speaking audio upload contracts."""
 
 import base64
 import binascii
@@ -48,3 +48,35 @@ class AudioUploadConfirmed(BaseModel):
     status: Literal["VERIFIED"] = "VERIFIED"
     size_bytes: int
     duration_seconds: Decimal
+
+
+class CreateSpeakingAudioUpload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    purpose: Literal["SPEAKING"]
+    submission_id: UUID
+    content_type: Literal["audio/webm"]
+    size_bytes: int = Field(gt=0, strict=True)
+    sha256_hex: str = Field(pattern=r"^[a-fA-F0-9]{64}$")
+
+    @property
+    def checksum_sha256(self) -> str:
+        return base64.b64encode(bytes.fromhex(self.sha256_hex)).decode()
+
+
+class SpeakingAudioUploadCreated(BaseModel):
+    upload_id: UUID
+    upload_url: str
+    method: Literal["PUT"] = "PUT"
+    required_headers: dict[str, str]
+    expires_at: datetime
+    status: Literal["INITIATED"] = "INITIATED"
+
+
+class SpeakingAudioUploadConfirmed(BaseModel):
+    upload_id: UUID
+    submission_id: UUID
+    status: Literal["VERIFIED"] = "VERIFIED"
+    content_type: Literal["audio/webm"]
+    size_bytes: int
+    duration_seconds: Decimal
+    verified_at: datetime

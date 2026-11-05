@@ -62,9 +62,16 @@ def presign(key: str, content_type: str, size: int, checksum: str) -> str:
         ) from exc
 
 
-def read_audio(key: str, content_type: str, size: int, checksum: str) -> bytes:
+def read_audio(
+    key: str,
+    content_type: str,
+    size: int,
+    checksum: str,
+    *,
+    max_bytes: int | None = None,
+) -> bytes:
     require_storage()
-    if not 0 < size <= settings.audio_max_bytes:
+    if not 0 < size <= (settings.audio_max_bytes if max_bytes is None else max_bytes):
         raise ValidationAppError("The audio exceeds the configured size limit.")
     try:
         obj = client().get_object(Bucket=settings.s3_bucket, Key=key)

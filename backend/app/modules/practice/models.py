@@ -47,6 +47,30 @@ class PracticeSubmission(Base):
         ),
         Index("ix_practice_submissions_user_created", "user_id", "created_at"),
         Index(
+            "ix_speaking_history",
+            "user_id",
+            text("submitted_at DESC NULLS LAST"),
+            text("id DESC"),
+            postgresql_where=text("mode = 'RECORDED_SPEAKING'"),
+        ),
+        Index(
+            "ix_speaking_history_status",
+            "user_id",
+            "evaluation_status",
+            text("submitted_at DESC NULLS LAST"),
+            text("id DESC"),
+            postgresql_where=text("mode = 'RECORDED_SPEAKING'"),
+        ),
+        Index(
+            "uq_speaking_active_draft",
+            "module_progress_id",
+            "content_item_id",
+            unique=True,
+            postgresql_where=text(
+                "status = 'DRAFT' AND mode = 'RECORDED_SPEAKING' AND module_progress_id IS NOT NULL"
+            ),
+        ),
+        Index(
             "uq_submission_revision_group",
             "revision_group_id",
             "revision_number",
@@ -72,9 +96,7 @@ class PracticeSubmission(Base):
         nullable=False,
     )
     mode: Mapped[str] = mapped_column(String(30), nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="SUBMITTED"
-    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="SUBMITTED")
     evaluation_status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="PENDING"
     )
@@ -99,6 +121,49 @@ class PracticeSubmission(Base):
     submitted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class SpeakingDraftRequest(Base):
+    """Durable owner-scoped keys for creating or reusing recording drafts."""
+
+    __tablename__ = "speaking_draft_requests"
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    content_item_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("content_items.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    submission_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("practice_submissions.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class SpeakingSubmitRequest(Base):
+    """Durable acceptance receipts, including keys used for equivalent retries."""
+
+    __tablename__ = "speaking_submit_requests"
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    submission_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("practice_submissions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    media_upload_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False
+    )
+    response: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
 
 class PracticeSession(Base):
@@ -144,4 +209,3 @@ class PracticeSession(Base):
     ended_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-

@@ -25,6 +25,7 @@ from app.modules.media.schemas import (
     AudioUploadConfirmed,
     AudioUploadCreated,
     CreateAudioUpload,
+    SpeakingAudioUploadConfirmed,
 )
 
 
@@ -149,14 +150,24 @@ class MediaService:
             },
         )
 
-    async def confirm(self, user_id: UUID, upload_id: UUID) -> AudioUploadConfirmed:
+    async def confirm(
+        self, user_id: UUID, upload_id: UUID
+    ) -> AudioUploadConfirmed | SpeakingAudioUploadConfirmed:
         await self.lock_user(user_id)
         upload = await self.session.scalar(
             select(MediaUpload).where(
                 MediaUpload.id == upload_id, MediaUpload.user_id == user_id
             )
         )
-        if upload is None or upload.assessment_response_id is None:
+        if upload is not None and upload.purpose == "SPEAKING":
+            from app.modules.media.speaking import SpeakingMediaService
+
+            return await SpeakingMediaService(self.session).confirm(user_id, upload_id)
+        if (
+            upload is None
+            or upload.purpose != "ASSESSMENT"
+            or upload.assessment_response_id is None
+        ):
             raise NotFoundError("Assessment audio upload not found.")
         attempt, response = await self.lock_response(
             user_id, upload.assessment_response_id

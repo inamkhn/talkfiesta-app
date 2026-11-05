@@ -7,22 +7,32 @@ from threading import Event
 
 from app.core.config import settings
 from app.infrastructure.database import model_registry  # noqa: F401
-from app.infrastructure.messaging.celery_app import ASSESSMENT_QUEUE, celery_app
+from app.infrastructure.messaging.celery_app import (
+    ASSESSMENT_QUEUE,
+    SPEAKING_QUEUE,
+    celery_app,
+)
 from app.modules.jobs.outbox import claim_next, mark_published, record_failure
 
 logger = logging.getLogger(__name__)
 ASSESSMENT_TASK = "talkfiesta.assessment.execute"
+SPEAKING_TASK = "talkfiesta.speaking.execute"
 
 
 def require_handler() -> None:
     if not settings.outbox_dispatch_enabled:
         raise RuntimeError(
-            "Outbox publishing is disabled. Enable only after the assessment worker is deployed."
+            "Outbox publishing is disabled. Enable only after the configured workers are deployed."
         )
     celery_app.loader.import_default_modules()
-    if ASSESSMENT_TASK not in celery_app.tasks:
+    enabled = []
+    if settings.assessment_execution_enabled:
+        enabled.append(ASSESSMENT_TASK)
+    if settings.speaking_execution_enabled:
+        enabled.append(SPEAKING_TASK)
+    if not enabled or any(task not in celery_app.tasks for task in enabled):
         raise RuntimeError(
-            f"Required task {ASSESSMENT_TASK} is not registered; no events were claimed."
+            "Every enabled evaluation handler must be registered before dispatch."
         )
 
 
@@ -38,12 +48,17 @@ def dispatch_batch(stop: Event | None = None) -> int:
         try:
             # One publish attempt per DB claim; durable backoff lives in PostgreSQL.
             # Deterministic task ID aids correlation, not Celery deduplication.
+            task, queue = (
+                (SPEAKING_TASK, SPEAKING_QUEUE)
+                if claim.job_type == "SPEAKING_FEEDBACK"
+                else (ASSESSMENT_TASK, ASSESSMENT_QUEUE)
+            )
             celery_app.send_task(
-                ASSESSMENT_TASK,
+                task,
                 args=[str(claim.job_id)],
                 task_id=str(claim.event_id),
-                queue=ASSESSMENT_QUEUE,
-                routing_key=ASSESSMENT_QUEUE,
+                queue=queue,
+                routing_key=queue,
                 serializer="json",
                 retry=False,
                 ignore_result=True,

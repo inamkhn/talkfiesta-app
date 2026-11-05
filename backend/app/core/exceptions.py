@@ -32,6 +32,14 @@ class AppError(Exception):
         self.headers = headers or {}
 
 
+class PayloadTooLargeError(AppError):
+    """Declared upload exceeds the permitted byte limit."""
+
+    status_code = 413
+    code = "PAYLOAD_TOO_LARGE"
+    title = "Content Too Large"
+
+
 class ValidationAppError(AppError):
     """Request payload passed Pydantic but violates a domain rule."""
 
