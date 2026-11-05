@@ -11,6 +11,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     SmallInteger,
     String,
@@ -71,6 +72,15 @@ class PracticeSubmission(Base):
             ),
         ),
         Index(
+            "uq_vocab_quiz_active_draft",
+            "module_progress_id",
+            "content_item_id",
+            unique=True,
+            postgresql_where=text(
+                "status = 'DRAFT' AND mode = 'VOCAB_QUIZ' AND module_progress_id IS NOT NULL"
+            ),
+        ),
+        Index(
             "uq_submission_revision_group",
             "revision_group_id",
             "revision_number",
@@ -99,6 +109,9 @@ class PracticeSubmission(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="SUBMITTED")
     evaluation_status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="PENDING"
+    )
+    edit_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
     )
     input: Mapped[dict] = mapped_column(JSONB, nullable=False)
     media_upload_id: Mapped[uuid.UUID | None] = mapped_column(

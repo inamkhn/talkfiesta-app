@@ -13,6 +13,7 @@ from app.modules.media.router import router as media_router
 from app.modules.onboarding.router import router as onboarding_router
 from app.modules.speaking.router import router as speaking_router
 from app.modules.users.router import router as users_router
+from app.modules.vocabulary.router import router as vocabulary_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -24,3 +25,4 @@ api_router.include_router(media_router)
 api_router.include_router(learning_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(speaking_router)
+api_router.include_router(vocabulary_router)
