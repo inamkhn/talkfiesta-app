@@ -13,11 +13,26 @@ from app.infrastructure.database.sync_session import SyncSessionLocal
 from app.modules.jobs.assessment_runner import recover_job
 from app.modules.jobs.models import AiJob, OutboxEvent
 from app.modules.jobs.speaking_runner import recover_job as recover_speaking_job
+from app.modules.jobs.vocabulary_runner import recover_job as recover_vocabulary_job
+from app.modules.jobs.writing_runner import recover_job as recover_writing_job
 
 logger = logging.getLogger(__name__)
+RECOVERY_HANDLERS = {
+    "ASSESSMENT": recover_job,
+    "SPEAKING_FEEDBACK": recover_speaking_job,
+    "VOCAB_CONTEXT": recover_vocabulary_job,
+    "WRITING_FEEDBACK": recover_writing_job,
+}
 
 
 def recover_batch(limit: int = 100) -> int:
+    job_types = ["ASSESSMENT"]
+    if settings.speaking_execution_enabled:
+        job_types.append("SPEAKING_FEEDBACK")
+    if settings.vocabulary_execution_enabled:
+        job_types.append("VOCAB_CONTEXT")
+    if settings.writing_execution_enabled:
+        job_types.append("WRITING_FEEDBACK")
     unpublished = (
         select(OutboxEvent.id)
         .where(OutboxEvent.ai_job_id == AiJob.id, OutboxEvent.published_at.is_(None))
@@ -34,11 +49,7 @@ def recover_batch(limit: int = 100) -> int:
             db.execute(
                 select(AiJob.id, AiJob.job_type)
                 .where(
-                    AiJob.job_type.in_(
-                        ["ASSESSMENT", "SPEAKING_FEEDBACK"]
-                        if settings.speaking_execution_enabled
-                        else ["ASSESSMENT"]
-                    ),
+                    AiJob.job_type.in_(job_types),
                     AiJob.status.in_(("RUNNING", "RETRYABLE", "PENDING")),
                     or_(
                         AiJob.next_attempt_at.is_(None),
@@ -66,9 +77,7 @@ def recover_batch(limit: int = 100) -> int:
     # Recheck under locks because another recovery process may win the race.
     changed = 0
     for job_id, job_type in ids:
-        handler = (
-            recover_speaking_job if job_type == "SPEAKING_FEEDBACK" else recover_job
-        )
+        handler = RECOVERY_HANDLERS.get(job_type, recover_job)
         changed += int(handler(job_id))
         if changed >= limit:
             break

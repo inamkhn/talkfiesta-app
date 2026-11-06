@@ -81,6 +81,23 @@ class PracticeSubmission(Base):
             ),
         ),
         Index(
+            "uq_writing_active_draft",
+            "module_progress_id",
+            "content_item_id",
+            unique=True,
+            postgresql_where=text(
+                "status = 'DRAFT' AND mode = 'WRITING' AND revision_number = 1 AND module_progress_id IS NOT NULL"
+            ),
+        ),
+        Index(
+            "ix_writing_portfolio",
+            "user_id",
+            "mode",
+            "revision_group_id",
+            text("submitted_at DESC NULLS LAST"),
+            postgresql_where=text("mode = 'WRITING' AND revision_group_id IS NOT NULL"),
+        ),
+        Index(
             "uq_submission_revision_group",
             "revision_group_id",
             "revision_number",

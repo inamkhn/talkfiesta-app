@@ -10,6 +10,8 @@ from app.infrastructure.database import model_registry  # noqa: F401
 from app.infrastructure.messaging.celery_app import (
     ASSESSMENT_QUEUE,
     SPEAKING_QUEUE,
+    VOCABULARY_QUEUE,
+    WRITING_QUEUE,
     celery_app,
 )
 from app.modules.jobs.outbox import claim_next, mark_published, record_failure
@@ -17,6 +19,15 @@ from app.modules.jobs.outbox import claim_next, mark_published, record_failure
 logger = logging.getLogger(__name__)
 ASSESSMENT_TASK = "talkfiesta.assessment.execute"
 SPEAKING_TASK = "talkfiesta.speaking.execute"
+VOCABULARY_TASK = "talkfiesta.vocabulary.execute"
+WRITING_TASK = "talkfiesta.writing.execute"
+
+TASK_AND_QUEUE_BY_JOB_TYPE = {
+    "ASSESSMENT": (ASSESSMENT_TASK, ASSESSMENT_QUEUE),
+    "SPEAKING_FEEDBACK": (SPEAKING_TASK, SPEAKING_QUEUE),
+    "VOCAB_CONTEXT": (VOCABULARY_TASK, VOCABULARY_QUEUE),
+    "WRITING_FEEDBACK": (WRITING_TASK, WRITING_QUEUE),
+}
 
 
 def require_handler() -> None:
@@ -30,6 +41,10 @@ def require_handler() -> None:
         enabled.append(ASSESSMENT_TASK)
     if settings.speaking_execution_enabled:
         enabled.append(SPEAKING_TASK)
+    if settings.vocabulary_execution_enabled:
+        enabled.append(VOCABULARY_TASK)
+    if settings.writing_execution_enabled:
+        enabled.append(WRITING_TASK)
     if not enabled or any(task not in celery_app.tasks for task in enabled):
         raise RuntimeError(
             "Every enabled evaluation handler must be registered before dispatch."
@@ -48,10 +63,8 @@ def dispatch_batch(stop: Event | None = None) -> int:
         try:
             # One publish attempt per DB claim; durable backoff lives in PostgreSQL.
             # Deterministic task ID aids correlation, not Celery deduplication.
-            task, queue = (
-                (SPEAKING_TASK, SPEAKING_QUEUE)
-                if claim.job_type == "SPEAKING_FEEDBACK"
-                else (ASSESSMENT_TASK, ASSESSMENT_QUEUE)
+            task, queue = TASK_AND_QUEUE_BY_JOB_TYPE.get(
+                claim.job_type, (ASSESSMENT_TASK, ASSESSMENT_QUEUE)
             )
             celery_app.send_task(
                 task,

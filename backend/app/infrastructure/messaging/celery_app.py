@@ -8,6 +8,8 @@ from app.core.config import settings
 OPERATIONS_QUEUE = "talkfiesta.operations"
 ASSESSMENT_QUEUE = "talkfiesta.assessments"
 SPEAKING_QUEUE = "talkfiesta.speaking"
+VOCABULARY_QUEUE = "talkfiesta.vocabulary"
+WRITING_QUEUE = "talkfiesta.writing"
 TASK_EXCHANGE = Exchange("talkfiesta", type="direct", durable=True)
 
 celery_app = Celery(
@@ -17,11 +19,25 @@ celery_app = Celery(
         "app.workers.health_tasks",
         "app.workers.assessment_tasks",
         "app.workers.speaking_tasks",
+        "app.workers.vocabulary_tasks",
+        "app.workers.writing_tasks",
     ],
 )
 celery_app.conf.update(
     task_queues=(
         Queue(SPEAKING_QUEUE, TASK_EXCHANGE, routing_key=SPEAKING_QUEUE, durable=True),
+        Queue(
+            VOCABULARY_QUEUE,
+            TASK_EXCHANGE,
+            routing_key=VOCABULARY_QUEUE,
+            durable=True,
+        ),
+        Queue(
+            WRITING_QUEUE,
+            TASK_EXCHANGE,
+            routing_key=WRITING_QUEUE,
+            durable=True,
+        ),
         Queue(
             OPERATIONS_QUEUE, TASK_EXCHANGE, routing_key=OPERATIONS_QUEUE, durable=True
         ),

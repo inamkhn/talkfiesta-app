@@ -26,6 +26,10 @@ def claim_next() -> DispatchClaim | None:
         event_types.append("EVALUATION_REQUESTED")
     if settings.speaking_execution_enabled:
         event_types.append("SPEAKING_FEEDBACK_REQUESTED")
+    if settings.vocabulary_execution_enabled:
+        event_types.append("VOCAB_CONTEXT_REQUESTED")
+    if settings.writing_execution_enabled:
+        event_types.append("WRITING_FEEDBACK_REQUESTED")
     with SyncSessionLocal.begin() as db:
         now = db.scalar(select(func.now()))
         event = db.scalar(
@@ -72,6 +76,20 @@ def claim_next() -> DispatchClaim | None:
                 or (
                     event.event_type == "SPEAKING_FEEDBACK_REQUESTED"
                     and job.job_type == "SPEAKING_FEEDBACK"
+                    and job.practice_submission_id is not None
+                    and payload.get("practice_submission_id")
+                    == str(job.practice_submission_id)
+                )
+                or (
+                    event.event_type == "VOCAB_CONTEXT_REQUESTED"
+                    and job.job_type == "VOCAB_CONTEXT"
+                    and job.practice_submission_id is not None
+                    and payload.get("practice_submission_id")
+                    == str(job.practice_submission_id)
+                )
+                or (
+                    event.event_type == "WRITING_FEEDBACK_REQUESTED"
+                    and job.job_type == "WRITING_FEEDBACK"
                     and job.practice_submission_id is not None
                     and payload.get("practice_submission_id")
                     == str(job.practice_submission_id)

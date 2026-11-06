@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     assessment_execution_enabled: bool = False
     speaking_execution_enabled: bool = False
     speaking_job_max_attempts: int = Field(default=3, ge=1, le=10)
+    vocabulary_execution_enabled: bool = False
+    vocabulary_job_max_attempts: int = Field(default=3, ge=1, le=10)
+    writing_execution_enabled: bool = False
+    writing_job_max_attempts: int = Field(default=3, ge=1, le=10)
     assessment_job_lease_seconds: int = Field(default=360, ge=30)
     assessment_job_max_attempts: int = Field(default=3, ge=1, le=10)
 
