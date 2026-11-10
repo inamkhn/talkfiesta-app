@@ -122,12 +122,30 @@ def current_plan_statement(user_id: UUID):
         .correlate(ModuleProgress, LearningPlan)
         .scalar_subquery()
     )
+    day_1_title = (
+        select(ContentItem.title)
+        .where(
+            ContentItem.release_key == ModuleProgress.content_release,
+            ContentItem.module == ModuleProgress.module,
+            ContentItem.kind == ModuleProgress.module + "_LESSON",
+            ContentItem.cycle == LearningPlan.cycle,
+            ContentItem.cefr_level == ModuleProgress.cefr_level,
+            ContentItem.goal_variant == ModuleProgress.goal_variant,
+            ContentItem.slot == "CORE",
+            ContentItem.day == 1,
+            ContentItem.status.in_(("PUBLISHED", "ARCHIVED")),
+        )
+        .limit(1)
+        .correlate(ModuleProgress, LearningPlan)
+        .scalar_subquery()
+    )
     return (
         select(
             User.onboarding_status,
             LearningPlan,
             ModuleProgress,
             credited_days.label("completed_days"),
+            day_1_title.label("day_1_title"),
         )
         .select_from(User)
         .outerjoin(

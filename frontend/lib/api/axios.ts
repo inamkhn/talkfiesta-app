@@ -1,138 +1,75 @@
-import axios from 'axios';
-import { isProtectedPath } from '@/lib/routes';
-
-// Ensure we are in the browser before accessing localStorage
-const isBrowser = typeof window !== 'undefined';
+import axios, { type InternalAxiosRequestConfig } from "axios";
+import { authApi } from "./auth";
+import { useAuthStore } from "@/store/authStore";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  baseURL: "/api/v1",
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Request Interceptor: Attach the token to outgoing requests
-apiClient.interceptors.request.use(
-  (config) => {
-    if (isBrowser) {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+export async function withSessionLock<T>(operation: () => Promise<T>): Promise<T> {
+  // Serialize rotation and logout across tabs sharing the refresh cookie.
+  if (typeof navigator !== "undefined" && navigator.locks) {
+    return await navigator.locks.request("talkfiesta-session", operation);
+  }
+  return operation();
+}
 
-// Auth endpoints must never trigger the token-refresh flow:
-// - /auth/login 401 = wrong credentials, not an expired session. Refreshing here
-//   swallows the error (full-page redirect) and, if a stale/revoked refresh token
-//   is present, replaying it makes the backend revoke ALL of the user's sessions.
-// - /auth/refresh & /auth/logout handle their own token semantics.
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout', '/auth/google'];
-const isAuthEndpoint = (url?: string) =>
-  !!url && AUTH_ENDPOINTS.some((path) => url.includes(path));
+apiClient.interceptors.request.use((config) => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  else config.headers.delete("Authorization");
+  return config;
+});
 
-// Prevent multiple simultaneous refresh requests
-let isRefreshing = false;
-let failedQueue: Array<{ resolve: (value?: unknown) => void; reject: (reason?: any) => void }> = [];
+let refreshPromise: Promise<string> | null = null;
+export function refreshAccessToken(failedToken: string | null): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = withSessionLock(async () => {
+      const current = localStorage.getItem("access_token");
+      // Another request/tab may already have rotated the cookie.
+      if (current && current !== failedToken) return current;
+      if (failedToken && !current) throw new Error("Session ended while refreshing.");
+      const data = await authApi.refresh();
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.removeItem("refresh_token"); // Remove obsolete client-stored credentials.
+      return data.access_token;
+    }).finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
 
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
+export async function revokeSession(): Promise<void> {
+  // Also coordinate in browsers without Web Locks.
+  if (refreshPromise) await refreshPromise.catch(() => undefined);
+  await withSessionLock(async () => {
+    await authApi.logout();
+    useAuthStore.getState().logout();
   });
-  failedQueue = [];
-};
+}
 
-// Response Interceptor: Catch 401s and automatically refresh the token
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-
-    // If it's a 401 Unauthorized on a non-auth endpoint and we haven't already retried
-    if (
-      error.response?.status === 401 &&
-      originalRequest &&
-      !originalRequest._retry &&
-      !isAuthEndpoint(originalRequest.url)
-    ) {
-      
-      if (isRefreshing) {
-        // If we are already refreshing, queue this request to wait
-        return new Promise(function (resolve, reject) {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = 'Bearer ' + token;
-            return apiClient(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        const refreshToken = isBrowser ? localStorage.getItem('refresh_token') : null;
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        // Call the backend /refresh endpoint directly using raw axios 
-        // to prevent infinite loops if the refresh itself returns 401
-        const response = await axios.post(
-          `${apiClient.defaults.baseURL}/auth/refresh`,
-          { refresh_token: refreshToken }
-        );
-
-        const { access_token, refresh_token: new_refresh_token } = response.data;
-
-        if (isBrowser) {
-          localStorage.setItem('access_token', access_token);
-          if (new_refresh_token) {
-              localStorage.setItem('refresh_token', new_refresh_token);
-          }
-        }
-
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        
-        processQueue(null, access_token);
-        
-        // Retry the original failed request
-        return apiClient(originalRequest);
-        
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        
-        // If refreshing the token completely fails (e.g., refresh token expired)
-        // we drop the stale session. Only force a redirect when the user is on
-        // a protected page — yanking a visitor off a public page (landing,
-        // login) because a background query hit a dead session is jarring.
-        if (isBrowser) {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          if (isProtectedPath(window.location.pathname)) {
-            window.location.href = '/login';
-          }
-        }
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
+apiClient.interceptors.response.use(response => response, async (error: unknown) => {
+  if (!axios.isAxiosError(error)) return Promise.reject(error);
+  const config = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+  const authEndpoint = config?.url?.startsWith("/auth/");
+  if (error.response?.status !== 401 || !config || config._retry || authEndpoint || typeof window === "undefined") {
     return Promise.reject(error);
   }
-);
-
+  config._retry = true;
+  const authorization = config.headers.Authorization;
+  const failedToken = typeof authorization === "string" ? authorization.replace(/^Bearer /, "") : null;
+  try {
+    const token = await refreshAccessToken(failedToken);
+    config.headers.Authorization = `Bearer ${token}`;
+    return apiClient(config);
+  } catch (refreshError) {
+    // Keep the session on network/server failures so the user can retry.
+    if (axios.isAxiosError(refreshError) && [401, 403].includes(refreshError.response?.status ?? 0)) {
+      useAuthStore.getState().logout();
+    }
+    return Promise.reject(refreshError);
+  }
+});
 
 export default apiClient;

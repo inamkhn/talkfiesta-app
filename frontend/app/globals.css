@@ -64,3 +64,31 @@ body {
 .glass-panel-dark {
   @apply bg-gray-900/70 backdrop-blur-md border border-gray-700/50 shadow-2xl;
 }
+
+/* Landing, authentication and first-time setup share the V4 visual language. */
+.journey-theme { color: #202d27; background: #faf9f6; color-scheme: light; }
+.journey-theme :is(a, button, input, textarea, select, summary):focus-visible {
+  outline: 3px solid #b96421; outline-offset: 4px;
+}
+.journey-theme section[id] { scroll-margin-top: 6rem; }
+.journey-primary, .journey-secondary {
+  display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+  min-height: 48px; padding: .8rem 1.4rem; border-radius: .8rem;
+  font-size: .9rem; font-weight: 600; text-align: center;
+  transition: background-color .15s;
+}
+.journey-primary { background: #1a6b45; color: white; border: 1px solid #1a6b45; }
+.journey-primary:hover { background: #145436; }
+.journey-secondary { background: white; color: #244b36; border: 1px solid #d5dfd3; }
+.journey-secondary:hover { background: #edf2e9; }
+.journey-primary:disabled, .journey-secondary:disabled { opacity: .5; cursor: not-allowed; }
+.journey-heading { margin-top: .75rem; font-size: clamp(1.75rem, 3.5vw, 2.5rem); font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
+.journey-eyebrow { color: #1a6b45; font-size: .7rem; font-weight: 700; letter-spacing: .13em; line-height: 1.7; }
+.auth-card label { color: #35483b; }
+.auth-card input { color: #202d27; border-color: #bbc8b9; background: white; }
+.auth-card button[type="submit"] { background: #1a6b45; color: white; }
+.auth-card button:disabled { cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

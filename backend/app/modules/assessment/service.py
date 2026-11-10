@@ -21,6 +21,7 @@ from app.modules.assessment.models import AssessmentAttempt, AssessmentResponse
 from app.modules.assessment.repository import AssessmentRepository
 from app.modules.assessment.schemas import (
     AssessmentDetailResponse,
+    AssessmentSectionProgress,
     StartAssessmentRequest,
     StartAssessmentResponse,
 )
@@ -64,6 +65,25 @@ class AssessmentService:
             answered_items=answered_items,
             current_position=current_position,
             can_submit=can_submit,
+            sections=[
+                AssessmentSectionProgress(
+                    skill=skill,
+                    total_items=SEQUENCE.count(skill),
+                    answered_items=sum(
+                        row.status == "ANSWERED"
+                        for row in rows
+                        if 1 <= row.position <= total_items
+                        and SEQUENCE[row.position - 1] == skill
+                    ),
+                    skipped_items=sum(
+                        row.status == "SKIPPED"
+                        for row in rows
+                        if 1 <= row.position <= total_items
+                        and SEQUENCE[row.position - 1] == skill
+                    ),
+                )
+                for skill in dict.fromkeys(SEQUENCE)
+            ],
         )
 
     async def start(
@@ -140,7 +160,13 @@ class AssessmentService:
                 code="ASSESSMENT_START_LIMIT",
             )
         release = settings.assessment_content_release
-        validate_bank(await self.repository.bank(release))
+        bank_items = await self.repository.bank(release)
+        if not bank_items and settings.environment == "local":
+            from app.modules.content.seed import ensure_assessment_bank_seeded
+
+            await ensure_assessment_bank_seeded(self.session, release)
+            bank_items = await self.repository.bank(release)
+        validate_bank(bank_items)
         attempt = AssessmentAttempt(
             id=uuid4(),
             user_id=user.id,

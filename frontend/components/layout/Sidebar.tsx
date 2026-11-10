@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -29,6 +30,16 @@ export function Sidebar() {
   // useAuth().logout revokes the refresh token server-side and clears the
   // query cache — the raw store logout only wipes local state.
   const { logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try { await logout(); }
+    catch { setLogoutError("Couldn’t sign out. Check your connection and try again."); }
+    finally { setLoggingOut(false); }
+  };
 
   return (
     <aside className="w-64 h-screen bg-neutral-950 border-r border-neutral-900 flex-col hidden md:flex sticky top-0 shrink-0">
@@ -69,17 +80,20 @@ export function Sidebar() {
         })}
       </div>
 
+      {logoutError && <p role="alert" className="px-4 py-2 text-sm text-red-300">{logoutError}</p>}
       {/* User Section */}
       <div className="p-4 border-t border-neutral-900/50 shrink-0">
         <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-900/50 border border-neutral-800/50">
           <div className="flex flex-col truncate pr-2 overflow-hidden">
             <span className="text-sm font-semibold text-white truncate">
-              {user?.first_name || "User"} {user?.last_name || ""}
+              {user?.display_name || "User"}
             </span>
             <span className="text-xs text-neutral-500 truncate">{user?.email}</span>
           </div>
           <button 
-            onClick={logout}
+            onClick={handleLogout}
+            disabled={loggingOut}
+            aria-label={loggingOut ? "Signing out" : "Log out"}
             className="p-2 text-neutral-500 hover:text-red-400 hover:bg-neutral-800 rounded-lg transition-colors shrink-0"
             title="Log out"
           >

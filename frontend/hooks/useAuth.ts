@@ -1,130 +1,90 @@
+import { useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import apiClient from "@/lib/api/axios";
+import apiClient, { revokeSession, withSessionLock } from "@/lib/api/axios";
+import { UserResponse } from "@/lib/api/types";
 import { useRouter } from "next/navigation";
 
-interface TokenPair {
-  access_token: string;
-  refresh_token?: string;
-}
+import { authApi, type AuthSessionResponse, type LoginInput, type RegisterInput, type GoogleInput, type ResetPasswordInput } from "@/lib/api/auth";
+type AuthOptions = { onSuccess?: () => void; onError?: (error: unknown) => void };
 
 export function useAuth() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, isLoading, logout: storeLogout } = useAuthStore();
+  const { user, isAuthenticated, isLoading } = useAuthStore();
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const formData = new URLSearchParams();
-      formData.append('username', data.username || data.email);
-      formData.append('password', data.password);
-      
-      const response = await apiClient.post("/auth/login", formData, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+  const authenticationInFlight = useRef(false);
+  const authenticate = async (request: () => Promise<AuthSessionResponse>) => {
+    if (authenticationInFlight.current) throw new Error("Sign-in is already in progress.");
+    authenticationInFlight.current = true;
+    try {
+      const token = await withSessionLock(async () => {
+        const data = await request();
+        await queryClient.cancelQueries();
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.removeItem("refresh_token");
+        return data.access_token;
       });
-      return response.data;
-    }
-  });
+      queryClient.removeQueries({ predicate: query => query.queryKey[0] !== "currentUser" });
+      useAuthStore.getState().setLearningProfile(null);
+      const me = await apiClient.get<UserResponse>("/users/me");
+      if (localStorage.getItem("access_token") !== token) throw new Error("The session changed. Please sign in again.");
+      queryClient.setQueryData(["currentUser"], me.data);
+      useAuthStore.getState().setUser(me.data);
+      return me.data;
+    } finally { authenticationInFlight.current = false; }
+  };
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiClient.post("/auth/register", data);
-      return response.data;
-    }
+  const loginMutation = useMutation({ mutationFn: (data: LoginInput) => authenticate(() => authApi.login(data)) });
+  const registerMutation = useMutation({ mutationFn: (data: RegisterInput) => authenticate(() => authApi.register(data)) });
+  const googleMutation = useMutation({ mutationFn: (data: GoogleInput) => authenticate(() => authApi.googleExchange(data)) });
+  const afterAuthentication = () => {
+    // The guarded entry point loads /onboarding/state before choosing a screen.
+    router.replace("/onboarding");
+  };
+  const login = (data: LoginInput, options?: AuthOptions) => loginMutation.mutate(data, {
+    onSuccess: () => { afterAuthentication(); options?.onSuccess?.(); },
+    onError: error => options?.onError?.(error),
   });
+  const register = (data: RegisterInput, options?: AuthOptions) => registerMutation.mutate(data, {
+    onSuccess: () => { afterAuthentication(); options?.onSuccess?.(); },
+    onError: error => options?.onError?.(error),
+  });
+  const googleLogin = (idToken: string, options?: AuthOptions) => googleMutation.mutate({ id_token: idToken }, {
+    onSuccess: () => { afterAuthentication(); options?.onSuccess?.(); },
+    onError: error => options?.onError?.(error),
+  });
+  const logout = async () => {
+    // Preserve the session if revocation fails; do not report a false logout.
+    await revokeSession();
+    await queryClient.cancelQueries();
+    queryClient.removeQueries({ predicate: query => query.queryKey[0] !== "currentUser" });
+    queryClient.setQueryData(["currentUser"], null);
+    router.replace("/login");
+  };
 
   const forgotPasswordMutation = useMutation({
-    mutationFn: async (email: string) => {
-      // Always answers 202, whether or not the address has an account.
-      const response = await apiClient.post("/auth/password/forgot", { email });
-      return response.data as { detail: string };
-    }
+    mutationFn: async (email: string) => authApi.forgotPassword({ email }),
   });
-
   const resetPasswordMutation = useMutation({
-    mutationFn: async (data: { token: string; new_password: string }) => {
-      await apiClient.post("/auth/password/reset", data);
-    }
+    mutationFn: async (data: ResetPasswordInput) => {
+      await withSessionLock(async () => {
+        await authApi.resetPassword(data);
+        // The server revokes sessions and clears its cookie on 204. Discard
+        // in-flight profile loads before they can restore obsolete user data.
+        await queryClient.cancelQueries();
+        useAuthStore.getState().logout();
+        queryClient.removeQueries({ predicate: query => query.queryKey[0] !== "currentUser" });
+        queryClient.setQueryData(["currentUser"], null);
+      });
+    },
   });
-
-  // Persist tokens, then hydrate the auth store BEFORE navigating so AuthGuard
-  // never sees isAuthenticated=false on a protected route mid-login (which
-  // would bounce a freshly logged-in user straight back to /login).
-  const completeAuthentication = async (tokens: TokenPair) => {
-    localStorage.setItem("access_token", tokens.access_token);
-    if (tokens.refresh_token) {
-      localStorage.setItem("refresh_token", tokens.refresh_token);
-    }
-
-    const { setUser, setLearningProfile, setLoading } = useAuthStore.getState();
-    setLoading(true); // guard shows the spinner instead of redirecting
-    // New users go to onboarding first; returning users land on the dashboard.
-    let destination = "/dashboard";
-    try {
-      const me = await apiClient.get("/auth/me");
-      setUser(me.data);
-      setLearningProfile(me.data.learning_profile || null);
-      // Seed the cache so AuthProvider doesn't refetch/flash on mount
-      queryClient.setQueryData(["currentUser"], me.data);
-      if (!me.data.onboarding_completed) {
-        destination = "/goal-selection";
-      }
-    } catch {
-      // Tokens are stored; keep isLoading=true and let AuthProvider's
-      // /auth/me query settle the session (success -> setUser, failure ->
-      // logged out). Either way the guard resolves without a race.
-      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-    }
-    router.push(destination);
-  };
-
-  const login = (data: any, options?: { onSuccess?: () => void; onError?: (error: any) => void }) => {
-    loginMutation.mutate(data, {
-      onSuccess: async (response) => {
-        options?.onSuccess?.();
-        await completeAuthentication(response);
-      },
-      onError: (err) => {
-        options?.onError?.(err);
-      },
-    });
-  };
-
-  const register = (data: any, options?: { onSuccess?: () => void; onError?: (error: any) => void }) => {
-    registerMutation.mutate(data, {
-      onSuccess: async (response) => {
-        options?.onSuccess?.();
-        await completeAuthentication(response);
-      },
-      onError: (err) => {
-        options?.onError?.(err);
-      },
-    });
-  };
-
-  const logout = async () => {
-    // Revoke the refresh token server-side BEFORE wiping local storage —
-    // otherwise it stays valid for its full lifetime after "logout".
-    const refreshToken =
-      typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
-    if (refreshToken) {
-      try {
-        await apiClient.post("/auth/logout", { refresh_token: refreshToken });
-      } catch {
-        // Best-effort: revocation failure (offline, expired) must not block local logout.
-      }
-    }
-    storeLogout();
-    // Drop every cached query so the next account never sees this user's data.
-    queryClient.clear();
-    router.push("/login");
-  };
 
   const requestPasswordReset = (
     email: string,
     options?: {
-      onSuccess?: (data: { detail: string }) => void;
-      onError?: (error: any) => void;
+      onSuccess?: (data: { message: string }) => void;
+      onError?: (error: unknown) => void;
     }
   ) => {
     forgotPasswordMutation.mutate(email, {
@@ -134,8 +94,8 @@ export function useAuth() {
   };
 
   const resetPassword = (
-    data: { token: string; new_password: string },
-    options?: { onSuccess?: () => void; onError?: (error: any) => void }
+    data: ResetPasswordInput,
+    options?: { onSuccess?: () => void; onError?: (error: unknown) => void }
   ) => {
     resetPasswordMutation.mutate(data, {
       onSuccess: () => options?.onSuccess?.(),
@@ -154,6 +114,8 @@ export function useAuth() {
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error,
     logout,
+    googleLogin,
+    isGoogleLoggingIn: googleMutation.isPending,
     requestPasswordReset,
     isRequestingReset: forgotPasswordMutation.isPending,
     resetPassword,

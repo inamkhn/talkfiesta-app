@@ -66,6 +66,13 @@ def public_item(row: AssessmentResponse, item: ContentItem) -> AssessmentItemRes
         prompt=body["prompt"],
         revision=row.revision,
         optional=body["kind"] == "RECORDED_SPEAKING",
+        draft_text=row.answer.get("text")
+        if body["kind"] == "SHORT_WRITING"
+        and row.status == "ASSIGNED"
+        and isinstance(row.answer, dict)
+        and row.answer.get("kind") == "SHORT_WRITING"
+        and isinstance(row.answer.get("text"), str)
+        else None,
         choices=[PublicChoice(id=c["id"], text=c["text"]) for c in body["choices"]]
         if body["kind"] == "MULTIPLE_CHOICE"
         else None,

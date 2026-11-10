@@ -41,9 +41,10 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends
-    Omit<HTMLMotionProps<"button">, "variant" | "size">,
+    Omit<HTMLMotionProps<"button">, "variant" | "size" | "children">,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  children?: React.ReactNode;
   isLoading?: boolean;
 }
 
@@ -65,7 +66,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         <Slot
           className={cn(buttonVariants({ variant, size, className }))}
           ref={ref as React.Ref<HTMLElement>}
-          {...(props as any)}
+          {...(props as React.ComponentPropsWithoutRef<typeof Slot>)}
         >
           {children}
         </Slot>
@@ -79,6 +80,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         whileHover={!props.disabled && !isLoading ? { scale: 1.02 } : {}}
         whileTap={!props.disabled && !isLoading ? { scale: 0.98 } : {}}
         {...props}
+        disabled={props.disabled || isLoading}
+        aria-busy={isLoading || undefined}
       >
         {isLoading ? (
           <div className="flex items-center justify-center space-x-2">

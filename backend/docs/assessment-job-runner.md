@@ -1,5 +1,10 @@
 # Assessment job execution and recovery
 
+Historical integration notes below are superseded by
+[the current deployment runbook](assessment-deployment.md) and evaluator/checkpoint
+docs. The evaluator now takes a validated snapshot and live claim and returns
+AssessmentEvaluation; the pipeline and public progress are implemented.
+
 Implemented the execution-control layer. The real evaluator is still pending.
 Keep ASSESSMENT_EXECUTION_ENABLED=false and OUTBOX_DISPATCH_ENABLED=false until
 the pipeline is implemented and workers are deployed. Enabling execution without

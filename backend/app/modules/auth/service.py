@@ -254,9 +254,10 @@ class AuthService:
             ip_address=ip_address,
             expires_at=refresh_token_expiry(),
         )
-        self._repository.add_session(session_row)
 
         try:
+            await self._session.flush()
+            self._repository.add_session(session_row)
             await self._session.commit()
         except IntegrityError:
             # Two concurrent registrations for one address: the unique index is

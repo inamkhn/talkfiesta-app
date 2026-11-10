@@ -5,10 +5,12 @@ from uuid import UUID, uuid4
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.exceptions import (
     ConflictError,
     ForbiddenError,
     NotFoundError,
+    ServiceUnavailableError,
     UnauthorizedError,
 )
 from app.modules.learning.models import LearningPlan, ModuleProgress
@@ -155,9 +157,19 @@ class OnboardingService:
             raise ConflictError(
                 "Save complete learning preferences first.", code="PREFERENCES_REQUIRED"
             ) from exc
-        curriculum = await select_curriculum(
-            self._repository, attempt.placement_cefr, preferences.goals
-        )
+        try:
+            curriculum = await select_curriculum(
+                self._repository, attempt.placement_cefr, preferences.goals
+            )
+        except ServiceUnavailableError:
+            if settings.environment != "local":
+                raise
+            from app.modules.content.seed import ensure_curriculum_seeded
+
+            await ensure_curriculum_seeded(self._session)
+            curriculum = await select_curriculum(
+                self._repository, attempt.placement_cefr, preferences.goals
+            )
         plan_id = uuid4()
         plan = LearningPlan(
             id=plan_id,
@@ -185,7 +197,9 @@ class OnboardingService:
             )
             for module in MODULES
         ]
-        self._repository.add_plan(plan, modules)
+        self._session.add(plan)
+        await self._session.flush()
+        self._session.add_all(modules)
         user.onboarding_status = "COMPLETED"
         user.current_cefr = attempt.placement_cefr
         await self._session.commit()

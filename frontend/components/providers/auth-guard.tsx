@@ -1,47 +1,122 @@
 "use client";
-
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
-// Deny-by-default: only the public marketing/auth pages are reachable without a
-// session. Route groups like (dashboard)/(onboarding) do NOT appear in URLs, so
-// /speaking, /vocabulary, /writing, /progress, /profile, /goal-selection and
-// /level-assessment are all protected app routes — a prefix check on
-// "/dashboard" or "/onboarding" would miss every one of them.
 import { isProtectedPath } from "@/lib/routes";
+import {
+  getOnboardingState,
+  isOnboardingPath,
+  onboardingDestination,
+} from "@/lib/api/onboarding-state";
+import { OnboardingStateContext } from "./onboarding-state-context";
+import { EmailVerificationReminder } from "@/components/auth/EmailVerificationReminder";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    // We do a simple client-side check since we are using localStorage for MVP.
-    // In a production app with SSR, we would use httpOnly cookies and Next.js middleware.
-    if (!isLoading && !isAuthenticated && isProtectedPath(pathname)) {
-      // Redirect to login if trying to access a protected route
-      router.push("/login");
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+  const protectedPage = isProtectedPath(pathname);
+  const authEntry = pathname === "/login" || pathname === "/register";
+  const checkOnboarding =
+    isAuthenticated && !isLoading && (protectedPage || authEntry);
+  const onboarding = useQuery({
+    // Recheck on route navigation; never share onboarding data across accounts.
+    queryKey: ["onboarding-state", user?.id, pathname],
+    queryFn: ({ signal }) => getOnboardingState(signal),
+    enabled: checkOnboarding,
+    retry: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) =>
+      query.state.data?.next_step === "ASSESSMENT_PROCESSING" ? 5000 : false,
+  });
+  const { refetch: refetchOnboarding } = onboarding;
+  const refreshOnboarding = useCallback(() => {
+    void refetchOnboarding();
+  }, [refetchOnboarding]);
+  let destination: string | null = null;
+  if (!isLoading && !isAuthenticated && protectedPage) destination = "/login";
+  if (checkOnboarding && onboarding.data && !onboarding.isError) {
+    const state = onboarding.data;
+    if (state.can_access_dashboard) {
+      if (
+        authEntry ||
+        (isOnboardingPath(pathname) && pathname !== "/learning-plan-ready")
+      )
+        destination = "/dashboard";
+    } else {
+      // Allow editing preferences before an assessment exists. Once an attempt
+      // exists, its server-owned state chooses the appropriate resume screen.
+      const editingPreferences =
+        pathname === "/goal-selection" &&
+        state.next_step === "ASSESSMENT" &&
+        !state.active_assessment_id;
+      if (!editingPreferences) destination = onboardingDestination(state);
     }
-  }, [isLoading, isAuthenticated, pathname, router]);
+    if (destination === pathname) destination = null;
+  }
+  useEffect(() => {
+    if (destination) router.replace(destination);
+  }, [destination, router]);
 
-  if (isLoading) {
+  if (checkOnboarding && onboarding.isError && !onboarding.data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="flex flex-col items-center space-y-4">
-          <svg className="animate-spin h-8 w-8 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span className="text-slate-400">Verifying session...</span>
-        </div>
+      <main className="journey-theme flex min-h-screen flex-col items-center justify-center gap-5 p-6">
+        <h1 className="text-xl font-semibold">
+          We couldn’t load your saved progress.
+        </h1>
+        <p role="alert" className="max-w-md text-center text-sm">
+          Please try again. We haven’t changed your preferences or assessment.
+        </p>
+        <button
+          className="journey-primary"
+          disabled={onboarding.isFetching}
+          onClick={() => onboarding.refetch()}
+        >
+          Retry
+        </button>
+      </main>
+    );
+  }
+  if (
+    (protectedPage && (isLoading || !isAuthenticated)) ||
+    (checkOnboarding && onboarding.isPending) ||
+    destination
+  ) {
+    return (
+      <div
+        role="status"
+        className="journey-theme flex min-h-screen items-center justify-center p-6"
+      >
+        Loading your saved progress…
       </div>
     );
   }
-
-  // If not authenticated and trying to access protected route, render nothing (will redirect)
-  if (!isAuthenticated && isProtectedPath(pathname)) {
-    return null;
+  if (checkOnboarding && onboarding.data) {
+    return (
+      <OnboardingStateContext.Provider
+        value={{
+          state: onboarding.data,
+          refresh: refreshOnboarding,
+          isRefreshing: onboarding.isFetching,
+        }}
+      >
+        {onboarding.isError && (
+          <div
+            role="alert"
+            className="journey-theme border-b border-orange-200 p-4 text-center text-sm"
+          >
+            We couldn’t refresh your progress. Your open activity is still here.{" "}
+            <button className="underline" onClick={refreshOnboarding}>
+              Retry status check
+            </button>
+          </div>
+        )}
+        {protectedPage && <EmailVerificationReminder />}
+        {children}
+      </OnboardingStateContext.Provider>
+    );
   }
-
   return <>{children}</>;
 }

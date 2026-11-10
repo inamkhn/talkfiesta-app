@@ -1,28 +1,30 @@
 """Add durable start keys to an existing V4 database.
 
 Revision ID: 20261031_start_keys
-Revises: None (the repository has no earlier migration revisions)
+Revises: 20261030_initial_v4
 """
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-from alembic import op
+from alembic import context, op
 
 revision = "20261031_start_keys"
-down_revision = None
+down_revision = "20261030_initial_v4"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    # This additive migration intentionally does not create/drop the existing
-    # V4 application tables. Refuse an empty or wrong database explicitly.
-    inspector = sa.inspect(op.get_bind())
-    if not all(inspector.has_table(name) for name in ("users", "assessment_attempts")):
-        raise RuntimeError(
-            "Initialize the V4 schema before applying the assessment start-key migration."
-        )
+    if not context.is_offline_mode():
+        inspector = sa.inspect(op.get_bind())
+        if not all(
+            inspector.has_table(name)
+            for name in ("users", "assessment_attempts")
+        ):
+            raise RuntimeError(
+                "Initialize the V4 schema before applying the assessment start-key migration."
+            )
     op.create_table(
         "assessment_start_requests",
         sa.Column(

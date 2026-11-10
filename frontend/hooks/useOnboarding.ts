@@ -1,34 +1,37 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { configureLearningProfile, completeOnboarding } from "@/lib/api/onboarding";
-import { useAuthStore } from "@/store/authStore";
-import { LearningProfileCreate } from "@/lib/api/types";
+import {
+  completeOnboarding,
+  saveOnboardingPreferences,
+  type SaveOnboardingPreferencesInput,
+} from "@/lib/api/onboarding";
 import { useRouter } from "next/navigation";
 
 export function useOnboarding() {
   const router = useRouter();
-  const { setLearningProfile, setUser } = useAuthStore();
+  const queryClient = useQueryClient();
 
-  const configureProfileMutation = useMutation({
-    mutationFn: (data: LearningProfileCreate) => configureLearningProfile(data),
-    onSuccess: (data) => {
-      setLearningProfile(data);
+  const savePreferencesMutation = useMutation({
+    mutationFn: (data: SaveOnboardingPreferencesInput) => saveOnboardingPreferences(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-preferences"] });
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-state"] });
+      router.replace("/onboarding");
     },
   });
 
   const completeOnboardingMutation = useMutation({
-    mutationFn: completeOnboarding,
-    onSuccess: (data) => {
-      setUser(data.user);
-      setLearningProfile(data.learning_profile);
-      router.push("/dashboard");
+    mutationFn: (assessmentAttemptId: string) => completeOnboarding(assessmentAttemptId),
+    onSuccess: async () => {
+      router.replace("/learning-plan-ready");
+      await queryClient.invalidateQueries({ queryKey: ["onboarding-state"] });
     },
   });
 
   return {
-    configureProfile: configureProfileMutation.mutate,
-    isConfiguring: configureProfileMutation.isPending,
-    
+    savePreferences: savePreferencesMutation.mutate,
+    isSavingPreferences: savePreferencesMutation.isPending,
     completeOnboarding: completeOnboardingMutation.mutate,
     isCompleting: completeOnboardingMutation.isPending,
   };
 }
+

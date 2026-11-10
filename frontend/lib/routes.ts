@@ -7,6 +7,9 @@ export const PUBLIC_PATHS = [
   "/register",
   "/forgot-password",
   "/reset-password",
+  "/verify-email",
+  "/request-email-verification",
+  "/design-preview", // Public sample UI; no account data or API requests.
 ];
 
 export const isProtectedPath = (pathname: string | null | undefined): boolean =>

@@ -194,6 +194,7 @@ class LearningPlanQueryService:
                     completed_days=row.completed_days,
                     target_cefr=progress.cefr_level,
                     prioritized=progress.prioritized,
+                    day_1_title=getattr(row, "day_1_title", None),
                 )
                 for row in rows
                 if (progress := row.ModuleProgress) is not None

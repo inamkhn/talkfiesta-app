@@ -1,35 +1,52 @@
+import Link from "next/link";
+import { ArrowRight, BookOpen, Check, Clock3, Mic, PenLine, ShieldCheck, Sparkles } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { Hero } from "@/components/landing/hero";
-import { TrustBar } from "@/components/landing/trust-bar";
-import { ProblemAgitation } from "@/components/landing/problem-agitation";
-import { ThreePillars } from "@/components/landing/three-pillars";
-import { ProductShowcase } from "@/components/landing/product-showcase";
-import { HowItWorks } from "@/components/landing/how-it-works";
-import { SystemExplainer } from "@/components/landing/system-explainer";
-import { AiDifferentiator } from "@/components/landing/ai-differentiator";
-import { Pricing } from "@/components/landing/pricing";
-import { FAQ } from "@/components/landing/faq";
-import { FinalCTA } from "@/components/landing/final-cta";
+
+const skills = [
+  { icon: Mic, title: "Speaking", description: "Find your words, then your confidence.", detail: "Record short responses to everyday prompts and review feedback after processing.", example: "Introduce yourself to a new colleague", color: "bg-[#e8f1e9]" },
+  { icon: BookOpen, title: "Vocabulary", description: "Learn words you can actually use.", detail: "Build useful vocabulary in context, then revisit it through practice.", example: "Make a suggestion · reschedule · catch up", color: "bg-[#fff0e2]" },
+  { icon: PenLine, title: "Writing", description: "Turn your thoughts into clear English.", detail: "Practice short messages and explore feedback on grammar and expression.", example: "Write about your weekend plans", color: "bg-[#efedf7]" },
+];
+const faqs = [
+  ["Will I become fluent in 21 days?", "A 21-day cycle gives your practice structure. Fluency develops over time and depends on your starting point, consistency, and opportunities to use English."],
+  ["Do I need to know my English level?", "No. A short starting assessment helps estimate your provisional CEFR level and choose suitable first lessons. It is not a certification or an official exam result."],
+  ["Do I have to record my voice?", "Speaking is optional in the starting assessment. Your browser asks for microphone permission when you choose to record. If you skip it, speaking is shown as not assessed."],
+  ["How does AI feedback work?", "Feedback is prepared after you submit your response. It can help you notice patterns and choose what to practice next, but AI can make mistakes."],
+  ["Do I have to finish every skill together?", "Speaking, Vocabulary, and Writing progress independently. Your plan helps you choose what to work on today."],
+  ["How much does TalkFiesta cost?", "Pricing and subscription details have not been announced. No paid plan, trial, or discount is currently offered on this page."],
+];
 
 export default function Home() {
-  return (
-    <>
-      <Header />
-      <main className="flex-1">
-        <Hero />
-        <TrustBar />
-        <ProblemAgitation />
-        <ThreePillars />
-        <ProductShowcase />
-        <HowItWorks />
-        <SystemExplainer />
-        <AiDifferentiator />
-        <Pricing />
-        <FAQ />
-        <FinalCTA />
-      </main>
-      <Footer />
-    </>
-  );
+  return <div className="journey-theme bg-[#faf9f6] text-[#202d27]">
+    <Header />
+    <main id="main-content">
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2 lg:gap-16">
+        <div>
+          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d5e4d8] bg-[#eef5ed] px-4 py-2 text-xs font-semibold tracking-wide text-brand-green"><Sparkles size={15} aria-hidden="true" /> A LITTLE PRACTICE. MORE POSSIBILITY.</p>
+          <h1 className="max-w-xl text-4xl font-semibold leading-[1.12] tracking-tight sm:text-6xl">Speak English with confidence. <span className="text-brand-green">One day at a time.</span></h1>
+          <p className="mt-6 max-w-lg text-lg leading-relaxed text-[#5a685f]">Speaking, Vocabulary, and Writing practice built around your goals. Make room for English in your everyday life.</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link className="journey-primary" href="/register">Start My English Journey <ArrowRight size={18} aria-hidden="true" /></Link><a className="journey-secondary" href="#how-it-works">See How It Works</a></div>
+          <p className="mt-5 flex items-center gap-2 text-sm text-[#5a685f]"><Clock3 size={16} aria-hidden="true" /> 21-day practice cycles. Progress at your pace.</p>
+        </div>
+        <div className="rounded-[2rem] border border-[#dce4db] bg-[#eaf0e7] p-5 sm:p-8">
+          <div className="mb-5 flex items-center justify-between gap-4"><span className="text-sm font-semibold text-brand-green">Small steps, every day</span><span className="rounded-full bg-white px-3 py-1 text-xs font-medium">Example preview</span></div>
+          <div className="rounded-2xl bg-white p-5 shadow-sm sm:p-7">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#637164]">Your daily practice</p><h2 className="mt-2 text-2xl font-semibold">A little English, just for you.</h2>
+            <p className="mt-3 text-sm text-[#5a685f]">Day 1 · Workplace confidence · 15-minute goal</p>
+            <div className="mt-6 space-y-3">{skills.map(({ icon: Icon, title, example, color }) => <div key={title} className="flex items-center gap-3 rounded-xl border border-[#e5e9e2] p-3"><span className={`rounded-xl p-3 ${color}`}><Icon size={20} aria-hidden="true" /></span><div><p className="text-sm font-semibold">{title}</p><p className="mt-1 text-xs leading-relaxed text-[#5a685f]">{example}</p></div></div>)}</div>
+            <p className="mt-5 rounded-xl bg-[#f6f7f3] p-3 text-xs leading-relaxed text-[#5a685f]">Your real plan follows your assessment. Each skill progresses independently.</p>
+          </div>
+        </div>
+      </section>
+      <section aria-label="Why practice with TalkFiesta" className="border-y border-[#e1e5dc] bg-white"><div className="mx-auto grid max-w-7xl gap-8 px-5 py-8 sm:px-8 md:grid-cols-3">{[["Practice with purpose", "Activities connected to the English you want to use."], ["Understand your next step", "Feedback to help you choose what to work on."], ["Build a steady habit", "A daily time goal that fits your life."]].map(([title, body]) => <div key={title} className="flex gap-3"><Check size={20} className="mt-1 shrink-0 text-brand-green" aria-hidden="true" /><div><h2 className="font-semibold">{title}</h2><p className="mt-1 text-sm leading-relaxed text-[#5a685f]">{body}</p></div></div>)}</div></section>
+      <section id="features" className="mx-auto max-w-7xl px-5 py-20 sm:px-8"><p className="journey-eyebrow">THREE SKILLS. ONE EVERYDAY HABIT.</p><h2 className="journey-heading">English for the moments that matter.</h2><div className="mt-10 grid gap-5 md:grid-cols-3">{skills.map(({ icon: Icon, title, description, detail, color }) => <article key={title} className="flex flex-col rounded-2xl border border-[#e0e5db] bg-white p-7"><span className={`mb-6 w-fit rounded-xl p-3 ${color}`}><Icon size={24} aria-hidden="true" /></span><h3 className="text-xl font-semibold">{title}</h3><p className="mt-3 font-medium">{description}</p><p className="mt-3 flex-1 text-sm leading-7 text-[#5a685f]">{detail}</p><Link href="/register" className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-green">Start your {title.toLowerCase()} journey <ArrowRight size={16} aria-hidden="true" /></Link></article>)}</div></section>
+      <section id="how-it-works" className="bg-[#edf2e9] px-5 py-20 sm:px-8"><div className="mx-auto max-w-7xl"><p className="journey-eyebrow">YOUR FIRST STEPS</p><h2 className="journey-heading">A starting point. A plan. A little practice.</h2><ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">{[["Make it yours", "Choose your goals, interests, and daily practice time."], ["Discover your starting level", "Try short grammar, vocabulary, and writing activities, with optional speaking."], ["Meet your learning plan", "Begin a 21-day cycle guided by your provisional level."], ["Find your daily rhythm", "Work on each skill independently and keep building your confidence."]].map(([title, body], i) => <li key={title}><span className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-green/20 bg-white font-semibold text-brand-green">{i + 1}</span><h3 className="mt-5 text-lg font-semibold">{title}</h3><p className="mt-2 text-sm leading-7 text-[#5a685f]">{body}</p></li>)}</ol></div></section>
+      <section className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-20 sm:px-8 md:grid-cols-2"><div><p className="journey-eyebrow">FEEDBACK YOU CAN LEARN FROM</p><h2 className="journey-heading">Notice a pattern.<br />Try it in your next conversation.</h2><p className="mt-5 max-w-lg leading-7 text-[#5a685f]">AI feedback helps you reflect on your responses after processing. Use it as practice guidance, not an official score or a promise of perfect accuracy.</p></div><div className="rounded-2xl border border-[#e0e5db] bg-white p-6 sm:p-8"><p className="journey-eyebrow">ILLUSTRATIVE FEEDBACK EXAMPLE</p><p className="mt-5 text-sm text-[#5a685f]">Original sentence</p><p className="mt-2 rounded-xl bg-[#faf4ed] p-4 text-lg">“Yesterday I go to a meeting.”</p><p className="mt-5 text-sm text-[#5a685f]">One way to improve it</p><p className="mt-2 rounded-xl bg-[#edf5ed] p-4 text-lg">“Yesterday I <strong className="text-brand-green">went</strong> to a meeting.”</p><p className="mt-4 text-sm leading-7 text-[#5a685f]">Use the past tense when describing a finished action. Next time, try describing one thing you did yesterday.</p></div></section>
+      <section id="pricing" className="mx-5 rounded-3xl bg-[#173e2c] px-6 py-14 text-white sm:mx-8"><div className="mx-auto flex max-w-5xl flex-col justify-between gap-8 md:flex-row md:items-center"><div><p className="text-xs font-semibold tracking-widest text-[#bed5bd]">PRICING</p><h2 className="mt-3 text-3xl font-semibold">Clear details, before you commit.</h2><p className="mt-4 max-w-xl leading-7 text-[#d2e0d2]">Pricing and subscription options are being finalized. We’ll share the details here when they’re available.</p></div><a href="#faq" className="journey-secondary shrink-0 !border-white/30 !bg-transparent !text-white">Read the FAQs <ArrowRight size={18} aria-hidden="true" /></a></div></section>
+      <section className="mx-auto flex max-w-3xl gap-4 px-5 py-16 sm:px-8"><ShieldCheck className="shrink-0 text-brand-green" aria-hidden="true" /><div><h2 className="font-semibold">You choose when to use your microphone.</h2><p className="mt-2 text-sm leading-7 text-[#5a685f]">The starting assessment includes optional speaking. Your browser controls microphone permission. Your provisional result guides your first lessons; it isn’t a certified qualification.</p></div></section>
+      <section id="faq" className="border-t border-[#e1e5dc] bg-white px-5 py-16 sm:px-8"><div className="mx-auto max-w-3xl"><p className="journey-eyebrow">A FEW THINGS YOU MIGHT BE WONDERING</p><h2 className="journey-heading">Good questions. Clear answers.</h2><div className="mt-8 divide-y divide-[#e1e5dc]">{faqs.map(([q, a]) => <details key={q} className="py-2"><summary className="cursor-pointer py-4 pr-4 font-semibold marker:text-brand-green">{q}</summary><p className="pb-5 text-sm leading-7 text-[#5a685f]">{a}</p></details>)}</div></div></section>
+      <section className="px-5 py-20 text-center"><p className="journey-eyebrow">YOUR NEXT CONVERSATION STARTS HERE</p><h2 className="journey-heading">Make a little space for English.</h2><p className="mx-auto mt-4 max-w-lg leading-7 text-[#5a685f]">Start with your goals. Build a routine that feels like yours.</p><Link href="/register" className="journey-primary mt-7">Start My English Journey <ArrowRight size={18} aria-hidden="true" /></Link></section>
+    </main><Footer />
+  </div>;
 }

@@ -3,11 +3,12 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Request, Response
 from pydantic import Field
 
 from app.api.deps import CurrentUser, DbSession
 from app.infrastructure.cache.redis import enforce_rate_limit
+from app.infrastructure.storage.s3 import write_local_audio
 from app.modules.media.schemas import (
     AudioUploadConfirmed,
     AudioUploadCreated,
@@ -41,6 +42,18 @@ async def create_upload(
 
         return await SpeakingMediaService(db).create(user.id, payload)
     return await MediaService(db).create(user.id, payload)
+
+
+@router.put("/local-storage/{object_key:path}", status_code=200)
+async def upload_local_blob(
+    object_key: str, request: Request, response: Response
+) -> Response:
+    """Local development upload target when S3_BUCKET is not configured."""
+    body = await request.body()
+    content_type = request.headers.get("content-type", "audio/webm")
+    write_local_audio(object_key, body, content_type)
+    response.headers["Cache-Control"] = "no-store"
+    return Response(status_code=200)
 
 
 @router.post(

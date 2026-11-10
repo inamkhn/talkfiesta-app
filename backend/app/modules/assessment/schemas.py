@@ -21,6 +21,13 @@ class StartAssessmentResponse(BaseModel):
     resumed: bool
 
 
+class AssessmentSectionProgress(BaseModel):
+    skill: Literal["GRAMMAR", "VOCABULARY", "WRITING", "SPEAKING"]
+    total_items: int
+    answered_items: int
+    skipped_items: int
+
+
 class AssessmentDetailResponse(BaseModel):
     id: UUID
     kind: Literal["INITIAL", "REASSESSMENT"]
@@ -30,6 +37,7 @@ class AssessmentDetailResponse(BaseModel):
     answered_items: int
     current_position: int | None = None
     can_submit: bool
+    sections: list[AssessmentSectionProgress] = Field(default_factory=list)
 
 
 class PublicChoice(BaseModel):
@@ -46,6 +54,7 @@ class AssessmentItemResponse(BaseModel):
     choices: list[PublicChoice] | None = None
     revision: int
     optional: bool = False
+    draft_text: str | None = Field(default=None, max_length=10000)
 
 
 class AnswerRequest(BaseModel):

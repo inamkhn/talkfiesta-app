@@ -30,7 +30,7 @@ def run_migrations_offline() -> None:
     """Emit SQL to stdout without a live database connection."""
 
     context.configure(
-        url=settings.database_url,
+        url=settings.migration_database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,
@@ -55,7 +55,9 @@ def do_run_migrations(connection) -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = create_engine(settings.database_url, poolclass=pool.NullPool)
+    connectable = create_engine(
+        settings.migration_database_url, poolclass=pool.NullPool
+    )
 
     with connectable.connect() as connection:
         do_run_migrations(connection)

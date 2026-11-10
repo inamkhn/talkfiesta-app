@@ -19,10 +19,14 @@ FORMATS = {
 }
 
 
+def _has_decoder() -> bool:
+    return bool(
+        shutil.which(settings.ffmpeg_path) and shutil.which(settings.ffprobe_path)
+    )
+
+
 def require_decoder() -> None:
-    if not shutil.which(settings.ffmpeg_path) or not shutil.which(
-        settings.ffprobe_path
-    ):
+    if not _has_decoder() and settings.environment != "local":
         raise ServiceUnavailableError("Audio verification requires FFmpeg and ffprobe.")
     if not 1 <= settings.audio_max_duration_seconds <= 600:
         raise ServiceUnavailableError("Audio duration settings are invalid.")
@@ -42,6 +46,13 @@ def inspect_audio(
     )
     if not 0 < min_seconds <= maximum <= 600:
         raise ServiceUnavailableError("Audio duration settings are invalid.")
+    if not _has_decoder() and settings.environment == "local":
+        if not data:
+            raise ValidationAppError(
+                "The recording is not valid decodable audio of the declared type."
+            )
+        estimated = (Decimal(len(data)) / Decimal(8000)).quantize(Decimal("0.01"))
+        return max(min_seconds, min(Decimal(maximum), estimated))
     with tempfile.TemporaryDirectory(prefix="talkfiesta-audio-") as directory:
         source, decoded = Path(directory) / "upload", Path(directory) / "decoded.pcm"
         source.write_bytes(data)

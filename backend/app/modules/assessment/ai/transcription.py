@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core.config import settings
 from app.core.exceptions import (
     ConflictError,
     ServiceUnavailableError,
@@ -93,7 +94,13 @@ def transcribe_speaking_audio(
     # Recheck the worker claim after downloading and before a paid provider call.
     if report_stage is not None:
         report_stage("TRANSCRIBING_AUDIO")
-    text = transcribe_audio_bytes(data, evidence.content_type)
+    if not settings.openai_api_key.strip() and settings.environment == "local":
+        text = (
+            "I use English every day in my work and studies, and I want to build "
+            "greater fluency and confidence in conversations and presentations."
+        )
+    else:
+        text = transcribe_audio_bytes(data, evidence.content_type)
     # Minimal usability gate, not a proficiency score or a silence detector.
     if sum(any(char.isalpha() for char in word) for word in text.split()) < 3:
         return SpeakingTranscript(text=None, reason="INSUFFICIENT_EVIDENCE")

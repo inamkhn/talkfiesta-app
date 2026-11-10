@@ -6,6 +6,16 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _normalize_psycopg_url(url: str) -> str:
+    """Normalize `postgres://` or `postgresql://` URLs (e.g. from Neon) to `postgresql+psycopg://`."""
+    cleaned = url.strip()
+    if cleaned.startswith("postgres://"):
+        return "postgresql+psycopg://" + cleaned[len("postgres://") :]
+    if cleaned.startswith("postgresql://"):
+        return "postgresql+psycopg://" + cleaned[len("postgresql://") :]
+    return cleaned
+
+
 class Settings(BaseSettings):
     """Runtime configuration for the API and workers.
 
@@ -25,11 +35,33 @@ class Settings(BaseSettings):
     debug: bool = False
 
     database_url: str = (
-        "postgresql+psycopg://postgres:postgres@localhost:5432/talkfiesta"
+        "postgresql://neondb_owner:npg_KgZc83NRTvIC@ep-long-smoke-a1bbqu3v-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
     )
+    direct_database_url: str = ""
     database_echo: bool = False
+    database_pool_size: int = Field(default=5, ge=1, le=50)
+    database_max_overflow: int = Field(default=10, ge=0, le=100)
+    database_pool_recycle: int = Field(default=300, ge=30, le=3600)
+    database_connect_timeout: int = Field(default=10, ge=1, le=60)
+
+    @property
+    def migration_database_url(self) -> str:
+        """Return direct database URL for migrations if set, else `database_url`."""
+        return self.direct_database_url or self.database_url
+
+    @property
+    def database_connect_args(self) -> dict[str, object]:
+        """Return psycopg 3 connect_args compatible with Neon Serverless & PgBouncer."""
+        args: dict[str, object] = {
+            "connect_timeout": self.database_connect_timeout,
+        }
+        if "-pooler." in self.database_url:
+            args["prepare_threshold"] = None
+        return args
 
     redis_url: str = "redis://localhost:6379/0"
+    upstash_redis_rest_url: str = "https://caring-tapir-183131.upstash.io"
+    upstash_redis_rest_token: str = "gQAAAAAAAstbAAIgcDEyNDUzMGI0ZmYyOTM0MDQ5OTQ4ZmRjZTU3NGMyNzMyMA"
     rate_limit_enabled: bool = True
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_worker_concurrency: int = Field(default=2, ge=1, le=32)
@@ -53,6 +85,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_celery_timeouts(self):
+        self.database_url = _normalize_psycopg_url(self.database_url)
+        if self.direct_database_url:
+            self.direct_database_url = _normalize_psycopg_url(
+                self.direct_database_url
+            )
         if self.assessment_job_lease_seconds <= self.celery_task_time_limit:
             raise ValueError(
                 "Assessment job lease must exceed the Celery hard time limit."
@@ -108,7 +145,7 @@ class Settings(BaseSettings):
     assessment_checkpoint_retention_days: int = Field(default=7, ge=1, le=365)
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"
-    openai_api_key: str = ""
+    openai_api_key: str = "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"
     openai_evaluation_model: str = "gpt-4o-mini"
     openai_transcription_model: str = "gpt-4o-mini-transcribe"
     openai_timeout_seconds: int = Field(default=30, ge=5, le=120)

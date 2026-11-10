@@ -17,7 +17,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "TalkFiesta - AI English Learning",
-  description: "Master English in 21 Days with AI-Powered Speaking, Vocabulary & Writing Practice.",
+  description: "Build an everyday English habit with speaking, vocabulary, and writing practice in 21-day learning cycles.",
 };
 
 export default function RootLayout({

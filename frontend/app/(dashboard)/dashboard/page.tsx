@@ -32,7 +32,7 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">
-          Welcome back, {user?.first_name || "there"}!
+          Welcome back, {user?.display_name || "there"}!
         </h1>
         <p className="text-neutral-400 mt-1">Here is how you're doing today.</p>
       </header>

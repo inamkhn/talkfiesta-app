@@ -25,18 +25,12 @@ export type UserRole = "LEARNER" | "REVIEWER" | "ADMIN";
 export interface UserResponse {
   id: string;
   email: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  is_active: boolean;
-  role: UserRole;
-  oauth_provider?: OAuthProvider | null;
-  avatar_url?: string | null;
-  email_verified_at?: string | null;
-  onboarding_completed: boolean;
-  created_at: string;
-  updated_at: string;
-  last_login_at?: string | null;
-  learning_profile?: LearningProfileResponse | null;
+  display_name: string | null;
+  profile: Record<string, unknown>;
+  preferences: Record<string, unknown>;
+  role: string;
+  onboarding_status: "NOT_STARTED" | "PREFERENCES_SAVED" | "ASSESSING" | "RESULT_READY" | "COMPLETED";
+  email_verified_at: string | null;
 }
 
 export interface LearningProfileResponse {

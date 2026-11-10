@@ -38,6 +38,7 @@ class ModuleSummary(BaseModel):
     total_days: Literal[21] = 21
     target_cefr: Cefr
     prioritized: bool
+    day_1_title: str | None = None
 
     @model_validator(mode="after")
     def completed_cycle(self):

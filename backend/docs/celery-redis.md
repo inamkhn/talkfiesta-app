@@ -1,5 +1,9 @@
 # Celery and Redis configuration
 
+Historical implementation notes below are superseded by
+[the current deployment runbook](assessment-deployment.md). Assessment execution,
+dispatch, recovery, and checkpoints are now implemented.
+
 Celery app: `app.infrastructure.messaging.celery_app:celery_app`.
 Redis DB 0 remains API throttling; Redis DB 1 is the broker. These logical
 databases share resources and persistence, not isolation. PostgreSQL remains
