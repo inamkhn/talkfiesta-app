@@ -1,11 +1,14 @@
 """Authenticated daily speaking endpoints."""
 
+import asyncio
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Header, Query, Response
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.config import settings
 from app.infrastructure.cache.redis import enforce_rate_limit
 from app.modules.speaking.drafts import SpeakingDraftService
 from app.modules.speaking.history import SpeakingHistoryService
@@ -22,8 +25,18 @@ from app.modules.speaking.schemas import (
 )
 from app.modules.speaking.service import SpeakingQueryService
 from app.modules.speaking.submission import SpeakingSubmissionService
+from app.workers.speaking_tasks import execute_speaking
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/speaking", tags=["Speaking"])
+
+
+async def _run_local_speaking_job(job_id: str) -> None:
+    try:
+        await asyncio.to_thread(execute_speaking, job_id)
+    except Exception:
+        logger.exception("local_speaking_job_failed job_id=%s", job_id)
 
 
 @router.get("/submissions", response_model=SpeakingHistoryResponse)
@@ -66,6 +79,7 @@ async def submit_speaking(
     user: CurrentUser,
     db: DbSession,
     response: Response,
+    background_tasks: BackgroundTasks,
     idempotency_key: Annotated[
         str, Header(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
     ],
@@ -76,6 +90,14 @@ async def submit_speaking(
     result = await SpeakingSubmissionService(db).submit(
         user.id, submission_id, payload.media_upload_id, idempotency_key
     )
+    if (
+        settings.environment == "local"
+        and not settings.outbox_dispatch_enabled
+        and result.evaluation.job_id is not None
+    ):
+        background_tasks.add_task(
+            _run_local_speaking_job, str(result.evaluation.job_id)
+        )
     response.headers["Cache-Control"] = "private, no-store"
     response.headers["Location"] = result.submission_url
     return result

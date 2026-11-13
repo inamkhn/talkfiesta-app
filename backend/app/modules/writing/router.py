@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Header, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Body, Header, Query, Response
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.config import settings
 from app.infrastructure.cache.redis import enforce_rate_limit
 from app.modules.writing.schemas import (
     CreateWritingRevisionRequest,
@@ -25,8 +28,18 @@ from app.modules.writing.schemas import (
 )
 from app.modules.writing.service import WritingQueryService
 from app.modules.writing.submissions import WritingSubmissionService
+from app.workers.writing_tasks import execute_writing
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/writing", tags=["Writing"])
+
+
+async def _run_local_writing_job(job_id: str) -> None:
+    try:
+        await asyncio.to_thread(execute_writing, job_id)
+    except Exception:
+        logger.exception("local_writing_job_failed job_id=%s", job_id)
 
 
 @router.get("/today", response_model=WritingTodayResponse)
@@ -100,6 +113,7 @@ async def submit_writing_submission(
     user: CurrentUser,
     db: DbSession,
     response: Response,
+    background_tasks: BackgroundTasks,
     idempotency_key: Annotated[
         str, Header(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
     ],
@@ -114,6 +128,12 @@ async def submit_writing_submission(
     result = await WritingSubmissionService(db).submit(
         user.id, submission_id, idempotency_key, payload
     )
+    if (
+        settings.environment == "local"
+        and not settings.outbox_dispatch_enabled
+        and result.job_id is not None
+    ):
+        background_tasks.add_task(_run_local_writing_job, str(result.job_id))
     response.headers["Cache-Control"] = "private, no-store"
     return result
 

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Header, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Body, Header, Query, Response
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.config import settings
 from app.infrastructure.cache.redis import enforce_rate_limit
 from app.modules.vocabulary.practice import VocabPracticeService
 from app.modules.vocabulary.schemas import (
@@ -27,8 +30,18 @@ from app.modules.vocabulary.schemas import (
     VocabularyWordDetailResponse,
 )
 from app.modules.vocabulary.service import VocabularyQueryService
+from app.workers.vocabulary_tasks import execute_vocabulary
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/vocabulary", tags=["Vocabulary"])
+
+
+async def _run_local_vocab_job(job_id: str) -> None:
+    try:
+        await asyncio.to_thread(execute_vocabulary, job_id)
+    except Exception:
+        logger.exception("local_vocab_job_failed job_id=%s", job_id)
 
 
 @router.get("/today", response_model=VocabularyTodayResponse)
@@ -128,6 +141,7 @@ async def submit_vocab_practice_session(
     user: CurrentUser,
     db: DbSession,
     response: Response,
+    background_tasks: BackgroundTasks,
     idempotency_key: Annotated[
         str, Header(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
     ],
@@ -142,6 +156,12 @@ async def submit_vocab_practice_session(
     result = await VocabPracticeService(db).submit(
         user.id, session_id, idempotency_key, payload
     )
+    if (
+        settings.environment == "local"
+        and not settings.outbox_dispatch_enabled
+        and result.job_id is not None
+    ):
+        background_tasks.add_task(_run_local_vocab_job, str(result.job_id))
     response.status_code = 202 if result.job_id is not None else 200
     response.headers["Cache-Control"] = "private, no-store"
     return result

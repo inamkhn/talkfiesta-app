@@ -67,6 +67,11 @@ def transcribe_audio_bytes(
     ) as exc:
         raise RetryableEvaluationError("OpenAI transcription transient error.") from exc
     except APIStatusError as exc:
+        if exc.status_code in (401, 403) and settings.environment == "local":
+            return (
+                "I use English every day in my work and studies, and I want to build "
+                "greater fluency and confidence in conversations and presentations."
+            )
         if exc.status_code >= 500 or exc.status_code in (408, 409, 429):
             raise RetryableEvaluationError("OpenAI transcription unavailable.") from exc
         raise

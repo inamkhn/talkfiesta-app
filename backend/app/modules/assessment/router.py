@@ -1,11 +1,14 @@
 """Authenticated assessment endpoints."""
 
+import asyncio
+import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Response
+from fastapi import APIRouter, BackgroundTasks, Header, Response
 
 from app.api.deps import CurrentUser, DbSession
+from app.core.config import settings
 from app.infrastructure.cache.redis import enforce_rate_limit
 from app.modules.assessment.answers import AnswerService
 from app.modules.assessment.results import ResultService
@@ -22,8 +25,19 @@ from app.modules.assessment.schemas import (
 from app.modules.assessment.selection import AssignmentService
 from app.modules.assessment.service import AssessmentService
 from app.modules.assessment.submission import SubmissionService
+from app.workers.assessment_tasks import execute_assessment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/assessments", tags=["Assessment"])
+
+
+async def _run_local_assessment_job(job_id: str) -> None:
+    """Run placement evaluation in a worker thread when outbox dispatch is disabled locally."""
+    try:
+        await asyncio.to_thread(execute_assessment, job_id)
+    except Exception:
+        logger.exception("local_assessment_job_failed job_id=%s", job_id)
 
 
 @router.get("/{id}", response_model=AssessmentDetailResponse)
@@ -59,10 +73,23 @@ async def current_item(id: UUID, user: CurrentUser, db: DbSession, response: Res
     },
 )
 async def assessment_result(
-    id: UUID, user: CurrentUser, db: DbSession, response: Response
+    id: UUID,
+    user: CurrentUser,
+    db: DbSession,
+    response: Response,
+    background_tasks: BackgroundTasks,
 ) -> AssessmentResultResponse:
     """Poll safe evaluation progress or the completed provisional placement."""
     result = await ResultService(db).get(user.id, id)
+    if (
+        settings.environment == "local"
+        and not settings.outbox_dispatch_enabled
+        and result.status in ("SUBMITTED", "FAILED_RETRYABLE")
+        and result.evaluation.job_id is not None
+    ):
+        background_tasks.add_task(
+            _run_local_assessment_job, str(result.evaluation.job_id)
+        )
     response.headers["Cache-Control"] = "no-store"
     if result.retry_after_seconds is not None:
         response.headers["Retry-After"] = str(result.retry_after_seconds)
@@ -75,6 +102,7 @@ async def submit_assessment(
     user: CurrentUser,
     db: DbSession,
     response: Response,
+    background_tasks: BackgroundTasks,
     idempotency_key: Annotated[
         str, Header(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
     ],
@@ -83,6 +111,10 @@ async def submit_assessment(
         f"ratelimit:assessment-submit:user:{user.id}", limit=60, window_seconds=3600
     )
     result = await SubmissionService(db).submit(user.id, id, idempotency_key)
+    if settings.environment == "local" and not settings.outbox_dispatch_enabled:
+        background_tasks.add_task(
+            _run_local_assessment_job, str(result.evaluation.job_id)
+        )
     response.headers["Cache-Control"] = "no-store"
     response.headers["Location"] = result.result_url
     return result

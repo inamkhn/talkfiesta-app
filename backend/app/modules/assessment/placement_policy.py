@@ -46,6 +46,7 @@ class EvaluatedSkillFeedback:
     ) = None
     strengths: tuple[str, ...] = ()
     improvement_priorities: tuple[str, ...] = ()
+    low_evidence: bool = False
 
 
 def grade_objective_skill(
@@ -167,6 +168,8 @@ def assign_provisional_cefr(
         confidence: Literal["LOW", "MEDIUM"] = (
             "MEDIUM"
             if spread <= 1
+            and not writing.low_evidence
+            and not speaking.low_evidence
             and any(item.correct for item in grammar_outcomes)
             and any(item.correct for item in vocabulary_outcomes)
             else "LOW"

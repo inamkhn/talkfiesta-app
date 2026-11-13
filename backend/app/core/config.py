@@ -73,12 +73,12 @@ class Settings(BaseSettings):
     outbox_poll_seconds: float = Field(default=2, ge=0.1, le=60)
     outbox_lease_seconds: int = Field(default=120, ge=30, le=3600)
     outbox_max_attempts: int = Field(default=20, ge=1, le=100)
-    assessment_execution_enabled: bool = False
-    speaking_execution_enabled: bool = False
+    assessment_execution_enabled: bool = True
+    speaking_execution_enabled: bool = True
     speaking_job_max_attempts: int = Field(default=3, ge=1, le=10)
-    vocabulary_execution_enabled: bool = False
+    vocabulary_execution_enabled: bool = True
     vocabulary_job_max_attempts: int = Field(default=3, ge=1, le=10)
-    writing_execution_enabled: bool = False
+    writing_execution_enabled: bool = True
     writing_job_max_attempts: int = Field(default=3, ge=1, le=10)
     assessment_job_lease_seconds: int = Field(default=360, ge=30)
     assessment_job_max_attempts: int = Field(default=3, ge=1, le=10)

@@ -13,7 +13,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from pydantic import TypeAdapter, ValidationError
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -232,13 +232,12 @@ def load_assessment_evidence(job_id: UUID, claim_token: UUID) -> AssessmentEvide
     because the claim can expire after this snapshot has been loaded.
     """
     with (
-        sync_engine.connect().execution_options(
+        sync_engine.execution_options(
             isolation_level="REPEATABLE READ"
-        ) as connection,
+        ).connect() as connection,
         Session(bind=connection) as db,
         db.begin(),
     ):
-        db.execute(text("SET TRANSACTION READ ONLY"))
         now = db.scalar(select(func.clock_timestamp()))
         job = db.get(AiJob, job_id)
         if (
