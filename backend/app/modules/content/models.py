@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     SmallInteger,
     String,
+    Text,
     func,
     text,
 )
@@ -96,6 +97,12 @@ class ContentItem(Base):
             unique=True,
             postgresql_where=text("status = 'PUBLISHED' AND slot = 'CORE'"),
         ),
+        Index(
+            "uq_content_items_generation_item_key",
+            "generation_item_key",
+            unique=True,
+            postgresql_where=text("generation_item_key IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -116,12 +123,17 @@ class ContentItem(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT")
     origin: Mapped[str] = mapped_column(String(20), nullable=False, default="HUMAN")
     generation_batch_key: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    generation_item_key: Mapped[str | None] = mapped_column(String(120), nullable=True)
     content_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

@@ -11,6 +11,7 @@ from sqlalchemy import func, or_, select
 from app.core.config import settings
 from app.infrastructure.database.sync_session import SyncSessionLocal
 from app.modules.jobs.assessment_runner import recover_job
+from app.modules.jobs.content_runner import recover_job as recover_content_job
 from app.modules.jobs.models import AiJob, OutboxEvent
 from app.modules.jobs.speaking_runner import recover_job as recover_speaking_job
 from app.modules.jobs.vocabulary_runner import recover_job as recover_vocabulary_job
@@ -18,6 +19,7 @@ from app.modules.jobs.writing_runner import recover_job as recover_writing_job
 
 logger = logging.getLogger(__name__)
 RECOVERY_HANDLERS = {
+    "CONTENT_AUTHORING": recover_content_job,
     "ASSESSMENT": recover_job,
     "SPEAKING_FEEDBACK": recover_speaking_job,
     "VOCAB_CONTEXT": recover_vocabulary_job,
@@ -26,13 +28,17 @@ RECOVERY_HANDLERS = {
 
 
 def recover_batch(limit: int = 100) -> int:
-    job_types = ["ASSESSMENT"]
+    job_types = []
+    if settings.assessment_execution_enabled:
+        job_types.append("ASSESSMENT")
     if settings.speaking_execution_enabled:
         job_types.append("SPEAKING_FEEDBACK")
     if settings.vocabulary_execution_enabled:
         job_types.append("VOCAB_CONTEXT")
     if settings.writing_execution_enabled:
         job_types.append("WRITING_FEEDBACK")
+    if settings.content_generation_enabled:
+        job_types.append("CONTENT_AUTHORING")
     unpublished = (
         select(OutboxEvent.id)
         .where(OutboxEvent.ai_job_id == AiJob.id, OutboxEvent.published_at.is_(None))
@@ -50,6 +56,10 @@ def recover_batch(limit: int = 100) -> int:
                 select(AiJob.id, AiJob.job_type)
                 .where(
                     AiJob.job_type.in_(job_types),
+                    or_(
+                        AiJob.job_type != "CONTENT_AUTHORING",
+                        AiJob.parent_job_id.is_not(None),
+                    ),
                     AiJob.status.in_(("RUNNING", "RETRYABLE", "PENDING")),
                     or_(
                         AiJob.next_attempt_at.is_(None),

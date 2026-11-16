@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.infrastructure.database import model_registry  # noqa: F401
 from app.infrastructure.messaging.celery_app import (
     ASSESSMENT_QUEUE,
+    CONTENT_GENERATION_QUEUE,
     SPEAKING_QUEUE,
     VOCABULARY_QUEUE,
     WRITING_QUEUE,
@@ -21,8 +22,10 @@ ASSESSMENT_TASK = "talkfiesta.assessment.execute"
 SPEAKING_TASK = "talkfiesta.speaking.execute"
 VOCABULARY_TASK = "talkfiesta.vocabulary.execute"
 WRITING_TASK = "talkfiesta.writing.execute"
+CONTENT_TASK = "talkfiesta.content.generate_unit"
 
 TASK_AND_QUEUE_BY_JOB_TYPE = {
+    "CONTENT_AUTHORING": (CONTENT_TASK, CONTENT_GENERATION_QUEUE),
     "ASSESSMENT": (ASSESSMENT_TASK, ASSESSMENT_QUEUE),
     "SPEAKING_FEEDBACK": (SPEAKING_TASK, SPEAKING_QUEUE),
     "VOCAB_CONTEXT": (VOCABULARY_TASK, VOCABULARY_QUEUE),
@@ -45,6 +48,8 @@ def require_handler() -> None:
         enabled.append(VOCABULARY_TASK)
     if settings.writing_execution_enabled:
         enabled.append(WRITING_TASK)
+    if settings.content_generation_enabled:
+        enabled.append(CONTENT_TASK)
     if not enabled or any(task not in celery_app.tasks for task in enabled):
         raise RuntimeError(
             "Every enabled evaluation handler must be registered before dispatch."
@@ -63,9 +68,7 @@ def dispatch_batch(stop: Event | None = None) -> int:
         try:
             # One publish attempt per DB claim; durable backoff lives in PostgreSQL.
             # Deterministic task ID aids correlation, not Celery deduplication.
-            task, queue = TASK_AND_QUEUE_BY_JOB_TYPE.get(
-                claim.job_type, (ASSESSMENT_TASK, ASSESSMENT_QUEUE)
-            )
+            task, queue = TASK_AND_QUEUE_BY_JOB_TYPE[claim.job_type]
             celery_app.send_task(
                 task,
                 args=[str(claim.job_id)],

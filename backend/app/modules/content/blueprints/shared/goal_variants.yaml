@@ -1,0 +1,15 @@
+GENERAL:
+  label: "General Everyday & Professional English"
+  context_guidance: "Use relatable everyday, community, study, and general workplace situations."
+  register: "Neutral, natural conversational and semi-formal English."
+
+BUSINESS:
+  label: "Workplace & Career Communication"
+  context_guidance: "Frame tasks around meetings, teamwork, client updates, planning, and workplace problem-solving."
+  register: "Clear, polite, professional business English."
+
+TRAVEL:
+  label: "Travel & Global Mobility"
+  context_guidance: "Frame tasks around transit, accommodation, dining, cultural exploration, and travel logistics."
+  register: "Friendly, practical everyday spoken and written English."
+

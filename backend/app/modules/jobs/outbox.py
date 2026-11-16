@@ -6,6 +6,7 @@ from datetime import timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import func, or_, select, update
+from sqlalchemy.orm import aliased
 
 from app.core.config import settings
 from app.infrastructure.database.sync_session import SyncSessionLocal
@@ -30,12 +31,41 @@ def claim_next() -> DispatchClaim | None:
         event_types.append("VOCAB_CONTEXT_REQUESTED")
     if settings.writing_execution_enabled:
         event_types.append("WRITING_FEEDBACK_REQUESTED")
+    if settings.content_generation_enabled:
+        event_types.append("CONTENT_GENERATION_REQUESTED")
+    earlier = aliased(AiJob)
+    # Start curriculum days in order, even when event UUIDs sort differently.
+    # Once an earlier day has been attempted, its failure/backoff does not block siblings.
+    earlier_unstarted = (
+        select(earlier.id)
+        .where(
+            earlier.parent_job_id == AiJob.parent_job_id,
+            earlier.job_type == "CONTENT_AUTHORING",
+            earlier.status == "PENDING",
+            earlier.attempts == 0,
+            earlier.job_context["day"].as_integer()
+            < AiJob.job_context["day"].as_integer(),
+        )
+        .exists()
+    )
+    blocked_content = (
+        select(AiJob.id)
+        .where(
+            AiJob.id == OutboxEvent.ai_job_id,
+            earlier_unstarted,
+        )
+        .exists()
+    )
     with SyncSessionLocal.begin() as db:
         now = db.scalar(select(func.now()))
         event = db.scalar(
             select(OutboxEvent)
             .where(
                 OutboxEvent.event_type.in_(event_types),
+                or_(
+                    OutboxEvent.event_type != "CONTENT_GENERATION_REQUESTED",
+                    ~blocked_content,
+                ),
                 OutboxEvent.published_at.is_(None),
                 OutboxEvent.failed_at.is_(None),
                 or_(
@@ -67,6 +97,14 @@ def claim_next() -> DispatchClaim | None:
             and isinstance(payload, dict)
             and (
                 (
+                    event.event_type == "CONTENT_GENERATION_REQUESTED"
+                    and job.job_type == "CONTENT_AUTHORING"
+                    and job.parent_job_id is not None
+                    and job.generation_batch_key is not None
+                    and payload.get("parent_job_id") == str(job.parent_job_id)
+                    and payload.get("generation_batch_key") == job.generation_batch_key
+                )
+                or (
                     event.event_type == "EVALUATION_REQUESTED"
                     and job.job_type == "ASSESSMENT"
                     and job.assessment_attempt_id is not None

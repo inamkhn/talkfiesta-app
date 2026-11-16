@@ -1,0 +1,597 @@
+blueprint_version: "2026.11.1"
+cefr_level: B1
+cycle: 1
+title: "B1 Cycle 1: Confident Everyday & Workplace Fluency"
+days:
+  - day: 1
+    theme: "Memorable experiences"
+    learning_objective: "Describe a past experience and explain why it was important."
+    prerequisites:
+      - "Can describe familiar events using basic past forms."
+    grammar_focus:
+      - "Past simple"
+      - "Past continuous for background context"
+    vocabulary_theme:
+      topic: "Experiences and memories"
+      target_count: 10
+      avoid:
+        - "A1-level basic verbs unless used in a useful collocation"
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 80
+      minimum_word_count: 40
+      maximum_word_count: 180
+      time_limit_minutes: 15
+    avoid_repeating: []
+    goal_variant_rules:
+      GENERAL: "Personal or everyday memorable experiences"
+      BUSINESS: "A professional achievement or workplace milestone"
+      TRAVEL: "A memorable trip or unexpected travel experience"
+
+  - day: 2
+    theme: "Daily routines and habits"
+    learning_objective: "Compare productive daily routines and explain how habits are maintained."
+    prerequisites:
+      - "Can talk about present routines with frequency adverbs."
+    grammar_focus:
+      - "Present simple vs. present continuous"
+      - "Adverbs of frequency and time expressions"
+    vocabulary_theme:
+      topic: "Habits, time management, and consistency"
+      target_count: 10
+      avoid:
+        - "memorable"
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 80
+      minimum_word_count: 40
+      maximum_word_count: 180
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Memorable experiences"
+    goal_variant_rules:
+      GENERAL: "Daily study, exercise, or home routines"
+      BUSINESS: "Structuring a productive workday and avoiding distractions"
+      TRAVEL: "Maintaining healthy routines while traveling across time zones"
+
+  - day: 3
+    theme: "Solving everyday problems"
+    learning_objective: "Explain a practical problem and outline the steps taken to resolve it."
+    prerequisites:
+      - "Can sequence events using first, then, and finally."
+    grammar_focus:
+      - "Modal verbs for advice and necessity (should, had to, needed to)"
+      - "Cause-and-effect connectors (because, so, therefore)"
+    vocabulary_theme:
+      topic: "Troubleshooting, solutions, and decision-making"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "IMPROMPTU"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 80
+      minimum_word_count: 40
+      maximum_word_count: 200
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Daily routines and habits"
+    goal_variant_rules:
+      GENERAL: "Fixing an unexpected home, tech, or schedule problem"
+      BUSINESS: "Resolving a project blocker or customer issue"
+      TRAVEL: "Handling a missed connection or booking mistake"
+
+  - day: 4
+    theme: "Clear project updates"
+    learning_objective: "Summarize progress, blockers, and next steps concisely."
+    prerequisites:
+      - "Can report completed actions and upcoming plans."
+    grammar_focus:
+      - "Present perfect for recent results"
+      - "Future forms (going to, will) for next steps"
+    vocabulary_theme:
+      topic: "Progress, milestones, and status updates"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 85
+      minimum_word_count: 45
+      maximum_word_count: 200
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Solving everyday problems"
+    goal_variant_rules:
+      GENERAL: "Updating a study group or community team"
+      BUSINESS: "Giving a concise sprint or weekly stakeholder update"
+      TRAVEL: "Coordinating itinerary updates with travel companions"
+
+  - day: 5
+    theme: "Comparing options and trade-offs"
+    learning_objective: "Compare two realistic alternatives and justify a preference."
+    prerequisites:
+      - "Can use basic comparatives and superlatives."
+    grammar_focus:
+      - "Comparative structures (more... than, as... as)"
+      - "Contrastive linkers (however, while, although)"
+    vocabulary_theme:
+      topic: "Evaluation, advantages, and trade-offs"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "OPINION"
+      target_word_count: 90
+      minimum_word_count: 45
+      maximum_word_count: 200
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Clear project updates"
+    goal_variant_rules:
+      GENERAL: "Choosing between two learning methods or living arrangements"
+      BUSINESS: "Comparing remote vs. in-office collaboration"
+      TRAVEL: "Comparing independent travel vs. guided tours"
+
+  - day: 6
+    theme: "Asking for and giving clarification"
+    learning_objective: "Clarify misunderstandings politely and confirm shared expectations."
+    prerequisites:
+      - "Can form indirect and polite questions."
+    grammar_focus:
+      - "Polite indirect questions (Could you tell me..., I was wondering...)"
+    vocabulary_theme:
+      topic: "Clarification, confirmation, and polite requests"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 80
+      minimum_word_count: 40
+      maximum_word_count: 200
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Comparing options and trade-offs"
+    goal_variant_rules:
+      GENERAL: "Clarifying instructions for a class or event"
+      BUSINESS: "Confirming deliverables and timelines in an email"
+      TRAVEL: "Confirming hotel, tour, or transport details"
+
+  - day: 7
+    theme: "Cycle 1 Week 1 reflection & synthesis"
+    learning_objective: "Reflect on personal progress over the first week and set a specific next goal."
+    prerequisites:
+      - "Days 1–6 completed."
+    grammar_focus:
+      - "Present perfect continuous (have been practicing)"
+      - "First conditional for realistic plans"
+    vocabulary_theme:
+      topic: "Growth, reflection, and goal setting"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 90
+      minimum_word_count: 45
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating: []
+    goal_variant_rules:
+      GENERAL: "Reviewing personal English progress this week"
+      BUSINESS: "Reflecting on a week of workplace communication"
+      TRAVEL: "Reviewing highlights and lessons from a week abroad"
+
+  - day: 8
+    theme: "Teamwork and collaboration"
+    learning_objective: "Describe how different people contribute to a shared goal."
+    prerequisites:
+      - "Can describe roles and responsibilities."
+    grammar_focus:
+      - "Relative clauses (who, which, that)"
+    vocabulary_theme:
+      topic: "Cooperation, roles, and shared responsibility"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "OPINION"
+      target_word_count: 90
+      minimum_word_count: 45
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Cycle 1 Week 1 reflection & synthesis"
+    goal_variant_rules:
+      GENERAL: "Working together on a community or study project"
+      BUSINESS: "Cross-functional collaboration between teams"
+      TRAVEL: "Planning a group trip with shared responsibilities"
+
+  - day: 9
+    theme: "Technology in daily life"
+    learning_objective: "Discuss benefits and drawbacks of digital tools using balanced arguments."
+    prerequisites:
+      - "Can express agreement and disagreement politely."
+    grammar_focus:
+      - "Gerunds and infinitives after common verbs"
+    vocabulary_theme:
+      topic: "Digital tools, productivity, and balance"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "IMPROMPTU"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "ARGUMENTATIVE"
+      target_word_count: 95
+      minimum_word_count: 50
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Teamwork and collaboration"
+    goal_variant_rules:
+      GENERAL: "How apps and smartphones shape daily habits"
+      BUSINESS: "Using automation and AI tools responsibly at work"
+      TRAVEL: "Using navigation and translation apps while traveling"
+
+  - day: 10
+    theme: "Giving constructive feedback"
+    learning_objective: "Deliver balanced feedback that highlights strengths and actionable next steps."
+    prerequisites:
+      - "Can soften requests and suggestions."
+    grammar_focus:
+      - "Modal hedges (might want to, could consider)"
+    vocabulary_theme:
+      topic: "Feedback, encouragement, and improvement"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 90
+      minimum_word_count: 45
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Technology in daily life"
+    goal_variant_rules:
+      GENERAL: "Helping a friend improve a presentation or essay"
+      BUSINESS: "Reviewing a colleague's draft proposal constructively"
+      TRAVEL: "Writing a fair, helpful review of a hotel or tour"
+
+  - day: 11
+    theme: "Learning from mistakes"
+    learning_objective: "Narrate a setback objectively and explain what changed afterward."
+    prerequisites:
+      - "Can narrate past events in sequence."
+    grammar_focus:
+      - "Past perfect for earlier events"
+    vocabulary_theme:
+      topic: "Resilience, setbacks, and lessons learned"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "IMPROMPTU"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 95
+      minimum_word_count: 50
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Giving constructive feedback"
+    goal_variant_rules:
+      GENERAL: "A personal mistake that taught a lasting lesson"
+      BUSINESS: "Recovering from a missed deadline or miscommunication"
+      TRAVEL: "A travel mishap that turned into a useful lesson"
+
+  - day: 12
+    theme: "Explaining a process step by step"
+    learning_objective: "Explain a multi-step process clearly so someone else can follow it."
+    prerequisites:
+      - "Can use imperative and sequencing expressions."
+    grammar_focus:
+      - "Passive voice in process descriptions"
+      - "Sequencing markers (first, once, before, finally)"
+    vocabulary_theme:
+      topic: "Instructions, workflow, and clarity"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 90
+      minimum_word_count: 45
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Learning from mistakes"
+    goal_variant_rules:
+      GENERAL: "Explaining how to cook a dish or learn a skill"
+      BUSINESS: "Documenting an onboarding or deployment checklist"
+      TRAVEL: "Explaining airport security or visa check-in steps"
+
+  - day: 13
+    theme: "Health, energy, and focus"
+    learning_objective: "Explain how lifestyle choices affect energy, focus, and sustainability."
+    prerequisites:
+      - "Can connect habits to outcomes."
+    grammar_focus:
+      - "Second conditional for hypothetical improvements"
+    vocabulary_theme:
+      topic: "Well-being, balance, and sustainable energy"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "OPINION"
+      target_word_count: 90
+      minimum_word_count: 45
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Explaining a process step by step"
+    goal_variant_rules:
+      GENERAL: "Balancing sleep, exercise, and screen time"
+      BUSINESS: "Preventing burnout during intense project cycles"
+      TRAVEL: "Staying energized during long-distance trips"
+
+  - day: 14
+    theme: "Cycle 1 Week 2 milestone check-in"
+    learning_objective: "Synthesize two weeks of practice and evaluate what strategies worked best."
+    prerequisites:
+      - "Days 8–13 completed."
+    grammar_focus:
+      - "Used to vs. be used to"
+    vocabulary_theme:
+      topic: "Milestones, adaptation, and momentum"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 95
+      minimum_word_count: 50
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating: []
+    goal_variant_rules:
+      GENERAL: "Evaluating two weeks of consistent English study"
+      BUSINESS: "Reviewing mid-sprint communication improvements"
+      TRAVEL: "Reflecting on cultural adaptation during a two-week stay"
+
+  - day: 15
+    theme: "Cultural perspectives"
+    learning_objective: "Describe a cultural tradition or communication norm and explain its meaning."
+    prerequisites:
+      - "Can compare customs across contexts."
+    grammar_focus:
+      - "Defining vs. non-defining relative clauses"
+    vocabulary_theme:
+      topic: "Culture, perspective, and respect"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 95
+      minimum_word_count: 50
+      maximum_word_count: 220
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Cycle 1 Week 2 milestone check-in"
+    goal_variant_rules:
+      GENERAL: "Sharing a local tradition with an international friend"
+      BUSINESS: "Navigating communication norms in global teams"
+      TRAVEL: "Respecting local etiquette while visiting a new country"
+
+  - day: 16
+    theme: "Making a persuasive recommendation"
+    learning_objective: "Propose a practical improvement supported by clear reasons and an example."
+    prerequisites:
+      - "Can state an opinion with supporting reasons."
+    grammar_focus:
+      - "Conditionals with unless and provided that"
+    vocabulary_theme:
+      topic: "Proposals, persuasion, and practical value"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "ARGUMENTATIVE"
+      target_word_count: 100
+      minimum_word_count: 50
+      maximum_word_count: 230
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Cultural perspectives"
+    goal_variant_rules:
+      GENERAL: "Recommending a community or school improvement"
+      BUSINESS: "Pitching a workflow or tool improvement to leadership"
+      TRAVEL: "Recommending a destination or itinerary change"
+
+  - day: 17
+    theme: "Handling unexpected changes"
+    learning_objective: "Explain how to adapt plans calmly when circumstances change."
+    prerequisites:
+      - "Can report unexpected events and alternatives."
+    grammar_focus:
+      - "Reported speech for updates and requests"
+    vocabulary_theme:
+      topic: "Flexibility, contingency, and composure"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "IMPROMPTU"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 95
+      minimum_word_count: 50
+      maximum_word_count: 230
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Making a persuasive recommendation"
+    goal_variant_rules:
+      GENERAL: "Changing weekend plans because of sudden weather"
+      BUSINESS: "Adjusting project scope when requirements shift"
+      TRAVEL: "Rebooking plans smoothly after a flight delay"
+
+  - day: 18
+    theme: "Prioritizing what matters"
+    learning_objective: "Explain how to prioritize competing tasks under time constraints."
+    prerequisites:
+      - "Can compare urgency and importance."
+    grammar_focus:
+      - "Connectors of purpose (in order to, so that)"
+    vocabulary_theme:
+      topic: "Prioritization, focus, and trade-offs"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "ARGUMENTATIVE"
+      target_word_count: 100
+      minimum_word_count: 50
+      maximum_word_count: 230
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Handling unexpected changes"
+    goal_variant_rules:
+      GENERAL: "Managing study, family, and personal commitments"
+      BUSINESS: "Choosing which feature or bug fix ships first"
+      TRAVEL: "Deciding what sights to prioritize on a short trip"
+
+  - day: 19
+    theme: "Stories that inspire"
+    learning_objective: "Describe someone whose actions inspired you and explain the impact."
+    prerequisites:
+      - "Can describe character traits and achievements."
+    grammar_focus:
+      - "Past simple with time clauses (when, while, since)"
+    vocabulary_theme:
+      topic: "Character, leadership, and inspiration"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "CONVERSATIONAL"
+      target_duration_seconds: 60
+      preparation_seconds: 15
+    writing:
+      writing_type: "DESCRIPTIVE"
+      target_word_count: 95
+      minimum_word_count: 50
+      maximum_word_count: 230
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Prioritizing what matters"
+    goal_variant_rules:
+      GENERAL: "A teacher, mentor, or family member who inspired you"
+      BUSINESS: "A leader or teammate who modeled initiative"
+      TRAVEL: "A local host or guide who made a trip unforgettable"
+
+  - day: 20
+    theme: "Future plans and long-term vision"
+    learning_objective: "Articulate medium-term goals and the concrete steps required to reach them."
+    prerequisites:
+      - "Can discuss future intentions and possibilities."
+    grammar_focus:
+      - "Future continuous and future plans (hope to, intend to)"
+    vocabulary_theme:
+      topic: "Ambition, planning, and commitment"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 75
+      preparation_seconds: 15
+    writing:
+      writing_type: "OPINION"
+      target_word_count: 100
+      minimum_word_count: 50
+      maximum_word_count: 240
+      time_limit_minutes: 15
+    avoid_repeating:
+      - "Stories that inspire"
+    goal_variant_rules:
+      GENERAL: "Personal learning or life goals for the next year"
+      BUSINESS: "Career growth and skill development over 12 months"
+      TRAVEL: "Planning a future international trip or relocation"
+
+  - day: 21
+    theme: "Cycle 1 capstone: Sharing your progress"
+    learning_objective: "Deliver a cohesive summary of your 21-day learning journey and next milestone."
+    prerequisites:
+      - "Days 1–20 completed."
+    grammar_focus:
+      - "Integrated review of past, present perfect, and future forms"
+    vocabulary_theme:
+      topic: "Achievement, fluency, and next steps"
+      target_count: 10
+      avoid: []
+    speaking:
+      exercise_type: "PUBLIC_SPEAKING"
+      target_duration_seconds: 75
+      preparation_seconds: 15
+    writing:
+      writing_type: "NARRATIVE"
+      target_word_count: 105
+      minimum_word_count: 55
+      maximum_word_count: 250
+      time_limit_minutes: 15
+    avoid_repeating: []
+    goal_variant_rules:
+      GENERAL: "Summarizing your 21-day English learning milestone"
+      BUSINESS: "Presenting key takeaways from a 21-day professional sprint"
+      TRAVEL: "Summarizing a 3-week cultural or travel immersion experience"

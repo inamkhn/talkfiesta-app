@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from collections.abc import Callable
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
@@ -373,9 +374,12 @@ def invoke_structured_model[SchemaT: BaseModel](
     system_prompt: str,
     user_prompt: str,
     runnable_config: RunnableConfig | None = None,
+    max_output_tokens: int | None = None,
+    usage_callback: Callable[[dict], None] | None = None,
+    allow_local_fallback: bool = True,
 ) -> SchemaT:
     """Run one structured-output call; job execution owns retry limits."""
-    if not settings.openai_api_key.strip() and settings.environment == "local":
+    if allow_local_fallback and not settings.openai_api_key.strip() and settings.environment == "local":
         return _local_fallback_evaluation(schema, user_prompt=user_prompt)
     require_openai()
     llm = ChatOpenAI(
@@ -384,6 +388,7 @@ def invoke_structured_model[SchemaT: BaseModel](
         temperature=0,
         timeout=settings.openai_timeout_seconds,
         max_retries=0,
+        **({"max_tokens": max_output_tokens} if max_output_tokens is not None else {}),
     ).with_structured_output(
         schema, method="json_schema", strict=True, include_raw=True
     )
@@ -405,7 +410,7 @@ def invoke_structured_model[SchemaT: BaseModel](
     ) as exc:
         raise RetryableEvaluationError("OpenAI evaluation transient error.") from exc
     except (AuthenticationError, PermissionDeniedError) as exc:
-        if settings.environment == "local":
+        if allow_local_fallback and settings.environment == "local":
             logger.warning(
                 "openai_auth_error_using_local_fallback status=%s",
                 getattr(exc, "status_code", "auth"),
@@ -413,7 +418,7 @@ def invoke_structured_model[SchemaT: BaseModel](
             return _local_fallback_evaluation(schema, user_prompt=user_prompt)
         raise
     except APIStatusError as exc:
-        if exc.status_code in (401, 403) and settings.environment == "local":
+        if allow_local_fallback and exc.status_code in (401, 403) and settings.environment == "local":
             logger.warning(
                 "openai_status_error_using_local_fallback status=%s", exc.status_code
             )
@@ -425,7 +430,7 @@ def invoke_structured_model[SchemaT: BaseModel](
         raise EvaluationRefusedError("Language evaluation was declined.") from None
     except Exception as exc:
         # langchain_openai wraps openai.AuthenticationError into OpenAIAuthenticationError
-        if settings.environment == "local" and (
+        if allow_local_fallback and settings.environment == "local" and (
             "401" in str(exc)
             or "api key" in str(exc).lower()
             or "authentication" in type(exc).__name__.lower()
@@ -436,6 +441,8 @@ def invoke_structured_model[SchemaT: BaseModel](
             return _local_fallback_evaluation(schema, user_prompt=user_prompt)
         raise
     raw = result.get("raw")
+    if usage_callback is not None:
+        usage_callback(getattr(raw, "usage_metadata", None) or {})
     if (
         getattr(raw, "additional_kwargs", {}).get("refusal")
         or getattr(raw, "response_metadata", {}).get("finish_reason")

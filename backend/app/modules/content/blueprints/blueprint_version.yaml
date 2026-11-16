@@ -1,0 +1,24 @@
+blueprint_version: "2026.11.1"
+supported_levels:
+  - A1
+  - A2
+  - B1
+  - B2
+  - C1
+  - C2
+supported_cycles:
+  - 1
+supported_modules:
+  - VOCABULARY
+  - SPEAKING
+  - WRITING
+supported_goal_variants:
+  - GENERAL
+  - BUSINESS
+  - TRAVEL
+pilot:
+  cefr_level: B1
+  cycle: 1
+  goal_variant: GENERAL
+  days: 21
+

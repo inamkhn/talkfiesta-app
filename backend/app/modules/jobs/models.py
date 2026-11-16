@@ -39,6 +39,8 @@ class AiJob(Base):
             name="valid_ai_job_status",
         ),
         Index("ix_ai_jobs_status_created", "status", "created_at"),
+        Index("ix_ai_jobs_batch_key", "generation_batch_key"),
+        Index("ix_ai_jobs_parent_job_id", "parent_job_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -98,6 +100,17 @@ class AiJob(Base):
         DateTime(timezone=True), nullable=True
     )
     last_error_code: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    parent_job_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("ai_jobs.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    generation_batch_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    job_context: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    result_summary: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class OutboxEvent(Base):

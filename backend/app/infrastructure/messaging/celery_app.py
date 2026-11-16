@@ -10,6 +10,7 @@ ASSESSMENT_QUEUE = "talkfiesta.assessments"
 SPEAKING_QUEUE = "talkfiesta.speaking"
 VOCABULARY_QUEUE = "talkfiesta.vocabulary"
 WRITING_QUEUE = "talkfiesta.writing"
+CONTENT_GENERATION_QUEUE = "talkfiesta.content_generation"
 TASK_EXCHANGE = Exchange("talkfiesta", type="direct", durable=True)
 
 celery_app = Celery(
@@ -21,6 +22,7 @@ celery_app = Celery(
         "app.workers.speaking_tasks",
         "app.workers.vocabulary_tasks",
         "app.workers.writing_tasks",
+        "app.workers.content_tasks",
     ],
 )
 celery_app.conf.update(
@@ -36,6 +38,12 @@ celery_app.conf.update(
             WRITING_QUEUE,
             TASK_EXCHANGE,
             routing_key=WRITING_QUEUE,
+            durable=True,
+        ),
+        Queue(
+            CONTENT_GENERATION_QUEUE,
+            TASK_EXCHANGE,
+            routing_key=CONTENT_GENERATION_QUEUE,
             durable=True,
         ),
         Queue(

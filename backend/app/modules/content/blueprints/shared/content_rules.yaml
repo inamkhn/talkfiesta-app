@@ -1,0 +1,23 @@
+vocabulary:
+  words_per_lesson: 10
+  min_exercises: 3
+  required_exercise_types:
+    - FILL_BLANK
+    - MATCH_DEFINITION
+    - USE_IN_CONTEXT
+  allow_cross_day_repeat_rate: 0.0
+
+speaking:
+  min_duration_seconds: 20
+  max_duration_seconds: 180
+  default_preparation_seconds: 15
+
+writing:
+  min_words_floor: 15
+  max_words_ceiling: 600
+
+safety:
+  forbid_html_tags: true
+  forbid_database_uuids_from_llm: true
+  require_private_evaluation: true
+
