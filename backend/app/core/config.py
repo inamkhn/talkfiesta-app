@@ -147,7 +147,7 @@ class Settings(BaseSettings):
     assessment_checkpoint_retention_days: int = Field(default=7, ge=1, le=365)
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"
-    openai_api_key: str = "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"
+    openai_api_key: str = ""
     openai_evaluation_model: str = "gpt-4o-mini"
     openai_transcription_model: str = "gpt-4o-mini-transcribe"
     openai_timeout_seconds: int = Field(default=30, ge=5, le=120)
