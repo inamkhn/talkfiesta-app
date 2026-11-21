@@ -10,7 +10,8 @@ import {
   BookOpen, 
   PenTool, 
   User,
-  LogOut
+  LogOut,
+  ShieldCheck
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,7 +53,18 @@ export function Sidebar() {
 
       {/* Nav Links */}
       <div className="flex-1 overflow-y-auto py-6 px-4 space-y-2">
-        {navItems.map((item) => {
+        {[
+          ...navItems,
+          ...(user?.role === "ADMIN"
+            ? [
+                {
+                  name: "Admin Content",
+                  href: "/admin/content-generation",
+                  icon: ShieldCheck,
+                },
+              ]
+            : []),
+        ].map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
 

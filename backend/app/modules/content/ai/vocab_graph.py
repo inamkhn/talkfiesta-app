@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
@@ -36,6 +36,7 @@ class VocabGenerationState(TypedDict, total=False):
     outcome: Literal["PASS_TO_REVIEW", "NEEDS_EDITOR_REVIEW", "FAILED"]
     _should_regenerate: bool
     report_stage: Callable[[str], None] | None
+    invoke_model: Callable[..., Any] | None
     invoke_model: Callable | None
 
 

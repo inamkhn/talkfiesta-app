@@ -34,6 +34,7 @@ def claim_next() -> DispatchClaim | None:
     if settings.content_generation_enabled:
         event_types.append("CONTENT_GENERATION_REQUESTED")
     earlier = aliased(AiJob)
+    running_content = aliased(AiJob)
     # Start curriculum days in order, even when event UUIDs sort differently.
     # Once an earlier day has been attempted, its failure/backoff does not block siblings.
     earlier_unstarted = (
@@ -56,6 +57,18 @@ def claim_next() -> DispatchClaim | None:
         )
         .exists()
     )
+    # Do not publish another content job while one already holds an active worker lease;
+    # otherwise claim_job() would skip and drop it until the visibility timeout expires.
+    active_content_running = (
+        select(running_content.id)
+        .where(
+            running_content.job_type == "CONTENT_AUTHORING",
+            running_content.parent_job_id.is_not(None),
+            running_content.status == "RUNNING",
+            running_content.lease_expires_at > func.now(),
+        )
+        .exists()
+    )
     with SyncSessionLocal.begin() as db:
         now = db.scalar(select(func.now()))
         event = db.scalar(
@@ -64,7 +77,7 @@ def claim_next() -> DispatchClaim | None:
                 OutboxEvent.event_type.in_(event_types),
                 or_(
                     OutboxEvent.event_type != "CONTENT_GENERATION_REQUESTED",
-                    ~blocked_content,
+                    (~blocked_content) & (~active_content_running),
                 ),
                 OutboxEvent.published_at.is_(None),
                 OutboxEvent.failed_at.is_(None),

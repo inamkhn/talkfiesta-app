@@ -312,3 +312,43 @@ def test_resolve_vocab_lesson_body_populates_uuids() -> None:
     expected_word_key = unit.lesson.word_item_keys[2]
     assert use_in_context[0]["word_id"] == str(key_to_id[expected_word_key])
 
+
+def test_vocab_graph_preserves_and_uses_custom_invoke_model(monkeypatch) -> None:
+    def fail_default(*args, **kwargs):
+        raise AssertionError("Default invoke_structured_model should not be called.")
+
+    monkeypatch.setattr(
+        "app.modules.content.ai.vocab_graph.invoke_structured_model",
+        fail_default,
+    )
+
+    calls: list[type] = []
+
+    def custom_invoke(schema, *, system_prompt, user_prompt, runnable_config=None):
+        calls.append(schema)
+        if schema is VocabularyUnitOutput:
+            return _sample_vocab_unit()
+        if schema is AiReviewReport:
+            return _sample_review_report()
+        raise AssertionError(f"Unexpected schema: {schema}")
+
+    graph = build_vocab_generation_graph()
+    result = graph.invoke(
+        {
+            "job_id": "job-custom-model",
+            "generation_batch_key": "batch-1",
+            "release_key": "B1-C1-V1",
+            "prompt_bundle_version": "content-factory-v1",
+            "context": get_day_blueprint("B1", 1, 1),
+            "prior_words": [],
+            "retry_count": 0,
+            "max_retries": 2,
+            "report_stage": None,
+            "invoke_model": custom_invoke,
+        }
+    )
+
+    assert result["outcome"] == "PASS_TO_REVIEW"
+    assert calls == [VocabularyUnitOutput, AiReviewReport]
+
+

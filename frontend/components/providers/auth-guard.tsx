@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect } from "react";
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
@@ -17,9 +18,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading } = useAuthStore();
   const protectedPage = isProtectedPath(pathname);
+  const isAdminPath = pathname?.startsWith("/admin") ?? false;
   const authEntry = pathname === "/login" || pathname === "/register";
   const checkOnboarding =
-    isAuthenticated && !isLoading && (protectedPage || authEntry);
+    isAuthenticated &&
+    !isLoading &&
+    !isAdminPath &&
+    (protectedPage || authEntry);
   const onboarding = useQuery({
     // Recheck on route navigation; never share onboarding data across accounts.
     queryKey: ["onboarding-state", user?.id, pathname],
@@ -91,6 +96,22 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       >
         Loading your saved progress…
       </div>
+    );
+  }
+  if (isAdminPath && user?.role !== "ADMIN") {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black p-6 text-neutral-100">
+        <h1 className="text-xl font-semibold">Admin access required</h1>
+        <p className="max-w-md text-center text-sm text-neutral-400">
+          This area is restricted to TalkFiesta administrators.
+        </p>
+        <Link
+          href="/dashboard"
+          className="rounded-lg border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+        >
+          Back to dashboard
+        </Link>
+      </main>
     );
   }
   if (checkOnboarding && onboarding.data) {
