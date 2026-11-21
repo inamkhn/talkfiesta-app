@@ -61,7 +61,7 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
     upstash_redis_rest_url: str = "https://caring-tapir-183131.upstash.io"
-    upstash_redis_rest_token: str = ""
+    upstash_redis_rest_token: str = "gQAAAAAAAstbAAIgcDEyNDUzMGI0ZmYyOTM0MDQ5OTQ4ZmRjZTU3NGMyNzMyMA"
     rate_limit_enabled: bool = True
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_worker_concurrency: int = Field(default=2, ge=1, le=32)
